@@ -39,8 +39,8 @@ export class TravelService {
   ) {}
 
   allCities() { return this.cities.find({ order: { id: 'ASC' } }); }
-  allFlights() { return this.flights.find({ relations: ['departureCity', 'arrivalCity'], order: { id: 'ASC' } }); }
-  allHotels() { return this.hotels.find({ relations: ['city'], order: { id: 'ASC' } }); }
+  allFlights() { return this.flights.find({ relations: { departureCity: true, arrivalCity: true }, order: { id: 'ASC' } }); }
+  allHotels() { return this.hotels.find({ relations: { city: true }, order: { id: 'ASC' } }); }
 
   async city(id: number): Promise<City> {
     const city = await this.cities.findOneBy({ id });
@@ -49,13 +49,13 @@ export class TravelService {
   }
 
   async flight(id: number): Promise<Flight> {
-    const flight = await this.flights.findOne({ where: { id }, relations: ['departureCity', 'arrivalCity'] });
+    const flight = await this.flights.findOne({ where: { id }, relations: { departureCity: true, arrivalCity: true } });
     if (!flight) throw new NotFoundException('Flight not found');
     return flight;
   }
 
   async hotel(id: number): Promise<Hotel> {
-    const hotel = await this.hotels.findOne({ where: { id }, relations: ['city'] });
+    const hotel = await this.hotels.findOne({ where: { id }, relations: { city: true } });
     if (!hotel) throw new NotFoundException('Hotel not found');
     return hotel;
   }
@@ -98,10 +98,10 @@ export class TravelService {
   }
 
   hotelsIn(cityId: number) {
-    return this.hotels.find({ where: { city: { id: cityId } }, relations: ['city'] });
+    return this.hotels.find({ where: { city: { id: cityId } }, relations: { city: true } });
   }
 
   flightsTo(cityId: number) {
-    return this.flights.find({ where: { arrivalCity: { id: cityId } }, relations: ['departureCity', 'arrivalCity'] });
+    return this.flights.find({ where: { arrivalCity: { id: cityId } }, relations: { departureCity: true, arrivalCity: true } });
   }
 }
