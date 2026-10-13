@@ -27,9 +27,10 @@ Il database contiene solo `City`, `Flight` e `Hotel`. Voli e hotel fanno riferim
 Servono Node.js, npm e Docker Compose. Il progetto può essere eseguito in una VM Linux con VirtualBox, ma la VM non è necessaria se questi strumenti sono già disponibili. Se si distribuisce una VM per il corso, verificare in anticipo che l'immagine completa con Docker e dipendenze rientri nella dimensione prevista di circa 10–15 GB.
 
 ```bash
-docker compose up -d
+docker compose up --wait
 cd nest-backend
 npm ci
+npm run seed
 npm run start:dev
 ```
 
@@ -45,7 +46,17 @@ Il repository include già `.env`; se manca, creare il file a partire da `.env.e
 
 Gli ID sono interi positivi. Gli orari dei voli sono timestamp ISO 8601 in UTC, per esempio `2026-11-20T09:00:00Z`; l'arrivo deve seguire la partenza. I prezzi sono numeri non negativi. Un ID inesistente produce `404`, un input non valido `400`.
 
-### Dati di esempio
+### Database pronto per il laboratorio
+
+`npm run seed`, eseguito da `nest-backend`, compila il progetto e prepara **6 città reali, 11 voli fittizi e 13 hotel fittizi**. Richiede MySQL avviato, ma non il server HTTP né l'accesso alle API esterne. Il dataset è in `nest-backend/src/seed/seed-data.ts`.
+
+Le città sono Roma, Milano, Parigi, Londra, Madrid e Berlino, con coordinate reali. Compagnie, hotel, prezzi in EUR e orari UTC sono dimostrativi. Parigi ha più voli in arrivo e hotel con prezzi diversi; Madrid non ha hotel nel dataset e Berlino non ha voli in arrivo, per esplorare risposte con liste vuote. Gli orari fissi di novembre 2026 non rappresentano disponibilità reali e restano utilizzabili anche dopo quelle date: l'API non filtra i voli per data.
+
+Il comando stampa gli ID effettivi delle città e tre URL pronti da provare dopo l'avvio del backend. Non assumere che gli ID siano da 1 a 6, soprattutto su un database già utilizzato.
+
+È possibile rieseguirlo: aggiunge solo i record mancanti senza cancellare o aggiornare quelli esistenti. Riconosce le città tramite nome e coordinate, i voli tramite città, compagnia e orari, gli hotel tramite città e nome; i prezzi esistenti vengono conservati. Eseguire un solo seed alla volta. Se un'esecuzione si interrompe, rilanciarla completa i dati mancanti. Su un database non vuoto, il numero totale di record può superare 6/11/13.
+
+### Inserimento manuale facoltativo
 
 Eseguire in ordine, sostituendo gli ID se il database contiene già dati:
 
@@ -67,7 +78,7 @@ Se Open-Meteo o Frankfurter non rispondono entro 3 secondi o restituiscono un er
 | --- | --- |
 | 0–10 | Richiamo di risorse, URI, metodi e codici HTTP dal laboratorio REST Basics |
 | 10–30 | Schema del dominio; servizio interno ed esterno; composizione, timeout e risposta parziale |
-| 30–55 | Avvio dell'ambiente e creazione delle due città, del volo e dell'hotel |
+| 30–55 | Avvio dell'ambiente già popolato ed esplorazione di città, voli e hotel |
 | 55–65 | Pausa |
 | 65–95 | Esplorazione di `travel-options`; cambiare valuta e confrontare prezzi e tasso |
 | 95–115 | Esercizi sugli errori e breve discussione delle scelte di progetto |

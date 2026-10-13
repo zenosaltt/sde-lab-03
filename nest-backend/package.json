@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "nest build",
+    "seed": "npm run build && node dist/seed.js",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
