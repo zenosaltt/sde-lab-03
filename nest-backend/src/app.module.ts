@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TravelModule } from './travel/travel.module.js';
@@ -29,7 +27,5 @@ import { TravelModule } from './travel/travel.module.js';
 
     TravelModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
-import { TravelService } from './travel/travel.service.js';
-import { runSeed } from './seed/run-seed.js';
+import { AppModule } from '../app.module.ts';
+import { TravelService } from '../travel/travel.service.ts';
+import { runSeed } from './run-seed.ts';
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule, {
