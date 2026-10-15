@@ -18,7 +18,7 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "types": ["vitest/globals", "node"],
+    "types": ["node"],
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true,
   }
