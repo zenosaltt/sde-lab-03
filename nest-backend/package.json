@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "nest build",
-    "seed": "npm run build && node dist/seed/seed.js",
+    "seed": "tsc -p tsconfig.seed.json && node dist-seed/seed/seed.js",
     "deploy": "nest deploy",
     "start": "nest start",
     "start:dev": "nest start --watch",

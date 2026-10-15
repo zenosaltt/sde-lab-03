@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { City } from '../model/city.entity.ts';
-import { Flight } from './flight.entity.js';
+import { Flight } from '../model/flight.entity.ts';
 import { Hotel } from '../model/hotel.entity.ts';
 
 type Input = Record<string, unknown>;
