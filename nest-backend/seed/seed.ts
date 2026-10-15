@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../app.module.ts';
-import { TravelService } from '../service/travel.service.ts';
+import { AppModule } from '../src/app.module.ts';
+import { TravelService } from '../src/service/travel.service.ts';
 import { runSeed } from './run-seed.ts';
 
 async function seed() {
@@ -17,8 +17,6 @@ async function seed() {
     for (const name of ['Parigi', 'Madrid', 'Berlino']) {
       console.log(`${name}: ${baseUrl}/cities/${cityIds.get(name)}/travel-options?currency=USD`);
     }
-    console.log('Madrid: nessun hotel del seed. Berlino: nessun volo in arrivo del seed.');
-    console.log('Avviare il backend con npm run start:dev per provare gli URL.');
   } finally {
     await app.close();
   }

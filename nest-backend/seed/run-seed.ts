@@ -1,5 +1,5 @@
-import type { TravelService } from '../service/travel.service.ts';
-import { cities, flights, hotels } from './seed-data.js';
+import type { TravelService } from '../src/service/travel.service.ts';
+import { cities, flights, hotels } from './seed-data.ts';
 
 type SeedService = Pick<TravelService,
   'allCities' | 'allFlights' | 'allHotels' | 'createCity' | 'createFlight' | 'createHotel'>;
