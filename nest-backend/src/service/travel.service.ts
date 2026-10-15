@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { City } from './city.entity.js';
+import { City } from '../model/city.entity.ts';
 import { Flight } from './flight.entity.js';
-import { Hotel } from './hotel.entity.js';
+import { Hotel } from '../model/hotel.entity.ts';
 
 type Input = Record<string, unknown>;
 
@@ -19,6 +19,13 @@ function number(value: unknown, field: string, min: number, max: number): number
     throw new BadRequestException(`${field} must be a number between ${min} and ${max}`);
   }
   return value;
+}
+
+function currency(value: unknown): string {
+  if (typeof value !== 'string' || !/^[A-Za-z]{3}$/.test(value)) {
+    throw new BadRequestException('currency must be a three-letter code');
+  }
+  return value.toUpperCase();
 }
 
 function date(value: unknown, field: string): Date {
@@ -65,6 +72,7 @@ export class TravelService {
       name: label(body.name, 'name'),
       latitude: number(body.latitude, 'latitude', -90, 90),
       longitude: number(body.longitude, 'longitude', -180, 180),
+      currency: currency(body.currency),
     });
     return this.cities.save(city);
   }
@@ -93,7 +101,7 @@ export class TravelService {
     return this.hotels.save(this.hotels.create({
       city,
       name: label(body.name, 'name'),
-      pricePerNightEur: number(body.pricePerNightEur, 'pricePerNightEur', 0, 99999999.99),
+      pricePerNight: number(body.pricePerNight, 'pricePerNight', 0, 99999999.99),
     }));
   }
 

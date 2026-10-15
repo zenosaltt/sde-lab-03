@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { City } from './city.entity.js';
+import { City } from './city.entity.ts';
 
 @Entity('hotels')
 export class Hotel {
@@ -13,7 +13,7 @@ export class Hotel {
     precision: 10, scale: 2,
     transformer: { to: (value: number) => value, from: (value: string) => Number(value) },
   })
-  pricePerNightEur: number;
+  pricePerNight: number;
 
   @ManyToOne(() => City, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'cityId' })

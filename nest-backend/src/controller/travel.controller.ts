@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
-import { TravelService } from './travel.service.js';
-import { ExternalService } from './external.service.js';
+import { TravelService } from '../service/travel.service.ts';
+import { ExternalService } from '../service/external.service.ts';
 
 const DEFAULT_CURRENCY = 'EUR';
 
@@ -127,7 +127,7 @@ export class TravelController {
       exchange,
       hotels: hotels.map((hotel) => ({
         ...hotel,
-        pricePerNight: convertPrice(hotel.pricePerNightEur, rate),
+        pricePerNight: convertPrice(hotel.pricePerNight, rate),
       })),
       inboundFlights: flights.map((flight) => ({
         ...flight,

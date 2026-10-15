@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module.ts';
-import { TravelService } from '../travel/travel.service.ts';
+import { TravelService } from '../service/travel.service.ts';
 import { runSeed } from './run-seed.ts';
 
 async function seed() {

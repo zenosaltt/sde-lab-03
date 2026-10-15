@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { City } from './city.entity.js';
+import { City } from '../model/city.entity.ts';
 
 @Entity('flights')
 export class Flight {

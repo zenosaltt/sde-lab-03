@@ -1,4 +1,4 @@
-import type { TravelService } from '../travel/travel.service.js';
+import type { TravelService } from '../service/travel.service.ts';
 import { cities, flights, hotels } from './seed-data.js';
 
 type SeedService = Pick<TravelService,
@@ -51,7 +51,7 @@ export async function runSeed(travel: SeedService) {
     const id = cityId(hotel.city);
     if (!existingHotels.some(item => item.city.id === id && item.name === hotel.name)) {
       existingHotels.push(await travel.createHotel({
-        cityId: id, name: hotel.name, pricePerNightEur: hotel.pricePerNightEur,
+        cityId: id, name: hotel.name, pricePerNight: hotel.pricePerNight,
       }));
       added.hotels++;
     }

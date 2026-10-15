@@ -13,4 +13,7 @@ export class City {
 
   @Column('double')
   longitude: number;
+
+  @Column({length: 3})
+  currency: string
 }
