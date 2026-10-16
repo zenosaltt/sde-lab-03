@@ -214,4 +214,66 @@ export class TravelController {
   //   ]);
   //   return { city, weather, hotels };
   // }
+
+
+  // EXERCISE 3 (easy): flight with arrival weather
+  //
+  // Goal: GET /flights/:id/weather
+  // Same pattern as exercise 1, but starting from a flight.
+  //
+  // Expected response:
+  //   {
+  //     "flight":  { "id": 1, "airline": "Demo Air", "arrivalCity": { "name": "Parigi", ... }, ... },
+  //     "weather": { "status": "ok", "data": { "temperature_2m": 11.4, "weather_code": 3 } }
+  //   }
+  //
+  // Hints:
+  //   1. @Get('flights/:id/weather'), id with ParseIntPipe, like getFlight.
+  //   2. this.travel.flight(requirePositiveId(id)) throws 404 if missing and
+  //      already loads flight.arrivalCity.
+  //   3. Weather of the ARRIVAL city, wrapped in available(...).
+  //   4. Return { flight, weather }.
+  //
+  // Test: /flights/1/weather -> 200, /flights/999/weather -> 404, /flights/0/weather -> 400.
+  //
+  // SOLUTION:
+  // @Get('flights/:id/weather')
+  // async getFlightWeather(@Param('id', ParseIntPipe) id: number) {
+  //   const flight = await this.travel.flight(requirePositiveId(id));
+  //   const weather = await available(
+  //     this.external.weather(flight.arrivalCity.latitude, flight.arrivalCity.longitude),
+  //   );
+  //   return { flight, weather };
+  // }
+
+
+  // EXERCISE 4 (easy+): cheapest hotel
+  //
+  // Goal: GET /cities/:id/hotels/cheapest
+  // Return the city and its cheapest hotel. No external call.
+  //
+  // Expected response:
+  //   { "city": { "id": 3, "name": "Parigi", ... },
+  //     "hotel": { "id": 6, "name": "Demo Hotel Senna", "pricePerNight": 90 } }
+  //
+  // Hints:
+  //   1. Get the city (404 if missing), then this.travel.hotelsIn(city.id).
+  //   2. If the list is empty throw new NotFoundException('No hotels in this city')
+  //      (import NotFoundException from @nestjs/common).
+  //   3. Find the minimum pricePerNight with reduce.
+  //
+  // Test: /cities/3/hotels/cheapest -> Senna (90), /cities/999/hotels/cheapest -> 404,
+  //       a city created with POST /cities and no hotels -> 404.
+  //
+  // SOLUTION:
+  // @Get('cities/:id/hotels/cheapest')
+  // async getCheapestHotel(@Param('id', ParseIntPipe) id: number) {
+  //   const city = await this.travel.city(requirePositiveId(id));
+  //   const hotels = await this.travel.hotelsIn(city.id);
+  //   if (hotels.length === 0) {
+  //     throw new NotFoundException('No hotels in this city');
+  //   }
+  //   const hotel = hotels.reduce((best, h) => (h.pricePerNight < best.pricePerNight ? h : best));
+  //   return { city, hotel };
+  // }
 }
