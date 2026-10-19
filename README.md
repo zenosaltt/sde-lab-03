@@ -14,7 +14,8 @@ Alla fine del laboratorio, lo studente sa:
 ## Struttura
 
 ```text
-docker-compose.yml            MySQL locale
+docker-compose.yml            backend, MySQL e Redis
+nest-backend/Dockerfile        ambiente Node.js per il laboratorio
 nest-backend/src/travel/       entità, controller e servizi del dominio
 nest-backend/src/app.module.ts configurazione DB e moduli NestJS
 nest-backend/test/             test API
@@ -24,17 +25,43 @@ Il database contiene solo `City`, `Flight` e `Hotel`. Voli e hotel fanno riferim
 
 ## Preparazione
 
-Servono Node.js, npm e Docker Compose. Il progetto può essere eseguito in una VM Linux con VirtualBox, ma la VM non è necessaria se questi strumenti sono già disponibili. Se si distribuisce una VM per il corso, verificare in anticipo che l'immagine completa con Docker e dipendenze rientri nella dimensione prevista di circa 10–15 GB.
+Servono solo Docker e Docker Compose. Node.js e npm sono inclusi nel container del backend. Il progetto può essere eseguito anche in una VM Linux con VirtualBox.
+
+Dalla radice del repository, se `.env` non è presente, copiarlo da `.env.example`:
 
 ```bash
-docker compose up --wait
-cd nest-backend
-npm ci
-npm run seed
-npm run start:dev
+cp .env.example .env
 ```
 
-Il repository include già `.env`; se manca, creare il file a partire da `.env.example` e impostare le credenziali desiderate. L'API risponde su `http://localhost:3000`. La configurazione del database usa `../.env`, quindi i comandi NestJS vanno eseguiti da `nest-backend`. Le tabelle sono create automaticamente da TypeORM (`synchronize: true`): utile per il laboratorio, non per un database di produzione. Per ripartire da zero: `docker compose down -v` dalla radice del progetto; **cancella i dati locali**.
+Avviare l'ambiente e popolare il database:
+
+```bash
+./start-lab.sh
+```
+
+Lo script esegue questi comandi, utilizzabili anche separatamente:
+
+```bash
+docker compose up -d --build --renew-anon-volumes
+docker compose exec backend npm run seed
+docker compose logs -f backend
+```
+
+L'API risponde su `http://localhost:3000`. Il backend attende che MySQL sia pronto; in rete Docker usa `mysql` e `redis` come host, indipendentemente dagli host locali in `.env`. Le tabelle sono create automaticamente da TypeORM (`synchronize: true`), utile per il laboratorio.
+
+### Modificare il codice durante gli esercizi
+
+La cartella `nest-backend` è montata in `/app` tramite un **bind mount**: modificare i file con il proprio editor li aggiorna immediatamente anche nel container, e viceversa. `npm run start:dev` ricompila e riavvia il backend quando cambiano i sorgenti. Il polling permette di rilevare le modifiche anche sui filesystem condivisi di Docker Desktop.
+
+`node_modules` usa un volume separato, così le dipendenze Linux del container non vengono sovrascritte da quelle eventualmente installate sul computer. Quando si modificano `package.json` o `package-lock.json`, rieseguire `./start-lab.sh`: la build usa `npm ci` e `--renew-anon-volumes` rinnova il volume delle dipendenze senza cancellare i dati MySQL.
+
+Per aprire una shell nel backend:
+
+```bash
+docker compose exec backend sh
+```
+
+`Ctrl+C` interrompe solo la visualizzazione dei log. Per fermare l'ambiente, usare `docker compose down`: i dati MySQL restano nel volume `mysql_data`. Per ripartire da zero, eseguire `docker compose down -v` e poi `./start-lab.sh`; **il primo comando cancella i dati locali**. Lo script di avvio conserva i dati e aggiunge solo quelli mancanti tramite il seed.
 
 ## API locale
 
@@ -48,7 +75,7 @@ Gli ID sono interi positivi. Gli orari dei voli sono timestamp ISO 8601 in UTC, 
 
 ### Database pronto per il laboratorio
 
-`npm run seed`, eseguito da `nest-backend`, compila il progetto e prepara **6 città reali, 11 voli fittizi e 13 hotel fittizi**. Richiede MySQL avviato, ma non il server HTTP né l'accesso alle API esterne. Il dataset è in `nest-backend/src/seed/seed-data.ts`.
+`docker compose exec backend npm run seed`, eseguito dalla radice, compila il progetto e prepara **6 città reali, 11 voli fittizi e 13 hotel fittizi**. Richiede MySQL avviato, ma non il server HTTP né l'accesso alle API esterne. Il dataset è in `nest-backend/seed/seed-data.ts`.
 
 Le città sono Roma, Milano, Parigi, Londra, Madrid e Berlino, con coordinate reali. Compagnie, hotel, prezzi in EUR e orari UTC sono dimostrativi. Parigi ha più voli in arrivo e hotel con prezzi diversi; Madrid non ha hotel nel dataset e Berlino non ha voli in arrivo, per esplorare risposte con liste vuote. Gli orari fissi di novembre 2026 non rappresentano disponibilità reali e restano utilizzabili anche dopo quelle date: l'API non filtra i voli per data.
 
