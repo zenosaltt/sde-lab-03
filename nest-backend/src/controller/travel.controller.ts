@@ -102,6 +102,13 @@ export class TravelController {
     return this.travel.createHotel(requireJsonObject(body));
   }
 
+  @Get('rate/:currency')
+  async getRate(
+    @Param('currency') requestedCurrency: string,
+  ) {
+    const currency = parseCurrency(requestedCurrency);
+    return await available(this.external.rate(currency));
+  }
 
   @Get('cities/:id/travel-options')
   async getTravelOptions(
