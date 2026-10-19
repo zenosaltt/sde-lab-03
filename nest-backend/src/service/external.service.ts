@@ -56,10 +56,10 @@ export class ExternalService implements OnModuleDestroy {
   }
 
   async rate(currency: string) {
-    if (currency === 'EUR') return { date: null, rate: 1 };
+    if (currency === 'EUR') return { rate: 1 };
     const url = new URL(`https://api.frankfurter.dev/v2/rate/EUR/${currency}`);
-    const data = await json(url) as { date?: string; rate?: number };
+    const data = await json(url) as { rate?: number };
     if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) throw new Error('Invalid rate response');
-    return { date: data.date ?? null, rate: data.rate };
+    return { rate: data.rate };
   }
 }

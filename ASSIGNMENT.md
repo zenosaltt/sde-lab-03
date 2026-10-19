@@ -8,7 +8,7 @@ Implement `GET /flights/:id/price?currency=USD` in `TravelController`. It return
 {
   "flight": { "id": 1, "airline": "Demo Air", "priceEur": 120, ... },
   "currency": "USD",
-  "exchange": { "status": "ok", "data": { "date": "2026-10-15", "rate": 1.08 } },
+  "exchange": { "status": "ok", "data": { "rate": 1.08 } },
   "price": 129.6
 }
 ```
