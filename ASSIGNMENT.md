@@ -2,13 +2,15 @@
 
 Implement `GET /flights/:id/price?currency=USD` in `TravelController`. It returns a flight with its price converted from EUR into the requested currency, using the Frankfurter exchange rate.
 
+Prerequisite: complete the guided `ExternalService.rate` example in `nest-backend/src/service/external.service.ts`. It returns `Promise<number>` (for example, `1.08`), so `available(...)` puts the number directly in `exchange.data`.
+
 ## Response
 
 ```json
 {
   "flight": { "id": 1, "airline": "Demo Air", "priceEur": 120, ... },
   "currency": "USD",
-  "exchange": { "status": "ok", "data": { "rate": 1.08 } },
+  "exchange": { "status": "ok", "data": 1.08 },
   "price": 129.6
 }
 ```
@@ -32,7 +34,7 @@ Everything you need already exists in the file. Look at `getTravelOptions` and c
 2. Load the flight: `this.travel.flight(requirePositiveId(id))`.
 3. Validate the currency: `parseCurrency(requestedCurrency)`.
 4. Ask for the rate: `available(this.external.rate(currency))`.
-5. Compute the price with `convertPrice(flight.priceEur, rate)`, where `rate` is `exchange.data.rate` if `exchange.status === 'ok'`, otherwise `null`.
+5. Compute the price with `convertPrice(flight.priceEur, rate)`, where `rate` is `exchange.data` if `exchange.status === 'ok'`, otherwise `null`.
 6. Return `{ flight, currency, exchange, price }`.
 
 ## Test

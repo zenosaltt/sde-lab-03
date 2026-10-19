@@ -68,7 +68,13 @@ curl -sS -X POST http://localhost:3000/hotels -H 'Content-Type: application/json
 curl -sS 'http://localhost:3000/cities/2/travel-options?currency=USD'
 ```
 
-Si possono eseguire le stesse richieste con Postman. L'ultima risposta contiene la città, i voli in arrivo, gli hotel della città, il meteo corrente e il tasso EUR→USD. `priceEur` e `pricePerNightEur` restano gli importi originali; `price` e `pricePerNight` sono gli importi convertiti. Il cambio Frankfurter è aggiornato giornalmente, quindi non rappresenta un prezzo garantito per una prenotazione futura.
+Si possono eseguire le stesse richieste con Postman. L'ultima risposta contiene la città, i voli in arrivo, gli hotel della città, il meteo corrente e il tasso EUR→USD. `ExternalService.rate` restituisce un semplice `number`: per esempio, la sezione del cambio è `"exchange": { "status": "ok", "data": 1.08 }`. `priceEur` e `pricePerNightEur` restano gli importi originali; `price` e `pricePerNight` sono gli importi convertiti. Il cambio Frankfurter è aggiornato giornalmente, quindi non rappresenta un prezzo garantito per una prenotazione futura.
+
+### Esempio guidato: chiamare Frankfurter
+
+In `nest-backend/src/service/external.service.ts`, `rate(currency): Promise<number>` è un placeholder da completare seguendo i commenti numerati accanto alla funzione: caso EUR, costruzione dell'URL, richiesta JSON, validazione e restituzione del solo tasso. L'helper `json` gestisce già timeout e stato HTTP; il controller usa `available` per gestire gli errori.
+
+Prima di completare l'esempio, il placeholder genera un errore per qualsiasi valuta, anche EUR: `travel-options` restituisce `exchange: { "status": "unavailable" }` e prezzi convertiti `null`. Dopo l'implementazione, verificare che EUR restituisca `1` senza chiamate esterne, che USD restituisca un numero e che una risposta non valida o un errore HTTP producano indisponibilità del cambio. Completare questo esempio prima dell'esercizio in `ASSIGNMENT.md`.
 
 Se Open-Meteo o Frankfurter non rispondono entro 3 secondi o restituiscono un errore, la risposta rimane `200` con `status: "unavailable"` nella rispettiva sezione. Se manca il cambio, gli importi convertiti sono `null`; i prezzi EUR rimangono disponibili. I dati locali, invece, devono essere validi: una città inesistente produce `404`. Il timeout riguarda ciascuna chiamata esterna, avviata in parallelo.
 

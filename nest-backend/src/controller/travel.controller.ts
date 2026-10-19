@@ -118,7 +118,7 @@ export class TravelController {
       available(this.external.rate(currency)),
     ]);
 
-    const rate = exchange.status === 'ok' ? exchange.data.rate : null;
+    const rate = exchange.status === 'ok' ? exchange.data : null;
 
     return {
       city,
