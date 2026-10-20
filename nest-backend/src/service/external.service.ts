@@ -55,30 +55,10 @@ export class ExternalService implements OnModuleDestroy {
     return data.current;
   }
 
-  // ESEMPIO GUIDATO: ottenere il tasso EUR -> currency da Frankfurter.
-  // Contratto: currency è già normalizzata da parseCurrency nel controller.
-  // Il risultato è un semplice number (es. 1.08), non un oggetto { rate: 1.08 }.
-  // In TypeScript anche i numeri con decimali hanno tipo number: Promise<number>.
-  // Documentazione: https://frankfurter.dev/#rate
-  //
-  // Passi per sostituire il placeholder:
-  // 1. Se currency è 'EUR', restituisci subito 1: non serve una chiamata HTTP.
-  // 2. Costruisci un URL per https://api.frankfurter.dev/v2/rate/EUR/${currency}
-  //    usando una template string e new URL(...).
-  // 3. Attendi json(url), l'helper definito sopra: esegue GET, applica il timeout
-  //    di 3 secondi, controlla lo stato HTTP e legge il corpo JSON.
-  // 4. Descrivi il corpo ricevuto con il tipo { rate?: number }.
-  //    Frankfurter restituisce un oggetto; a noi interessa solo il campo rate.
-  // 5. Verifica che rate sia un number e che Number.isFinite(rate) sia true.
-  //    Altrimenti lancia new Error('Invalid rate response').
-  // 6. Restituisci solo data.rate. Lascia propagare gli errori: available(...)
-  //    nel controller li trasforma in { status: 'unavailable' }.
-  //
-  // Verifica dopo l'implementazione: EUR -> 1 senza rete; USD -> un numero;
-  // risposta senza rate o errore HTTP -> Promise rifiutata.
-  // In travel-options, il numero sarà in exchange.data e servirà a convertire
-  // i prezzi; in caso di errore i prezzi convertiti saranno null.
-  async rate(currency: string): Promise<number> {
-    throw new Error('TODO: implementare rate seguendo i passi guidati');
+  async rate(from: string, to: string) {
+    const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
+    const data = await json(url) as { rate?: number };
+    if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) throw new Error('Invalid rate response');
+    return data.rate;
   }
 }

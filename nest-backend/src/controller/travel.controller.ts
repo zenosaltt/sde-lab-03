@@ -102,6 +102,15 @@ export class TravelController {
     return this.travel.createHotel(requireJsonObject(body));
   }
 
+  @Get('rate/:from/:to')
+  async getRate(
+    @Param('from') from: string,
+    @Param('to') to: string,
+  ) {
+    from = parseCurrency(from);
+    to = parseCurrency(to);
+    return await available(this.external.rate(from, to));
+  }
 
   @Get('cities/:id/travel-options')
   async getTravelOptions(
@@ -115,7 +124,7 @@ export class TravelController {
       this.travel.hotelsIn(city.id),
       this.travel.flightsTo(city.id),
       available(this.external.weather(city.latitude, city.longitude)),
-      available(this.external.rate(currency)),
+      available(this.external.rate("EUR", currency)),
     ]);
 
     const rate = exchange.status === 'ok' ? exchange.data : null;
