@@ -62,47 +62,6 @@ export class ExternalService implements OnModuleDestroy {
   }
 
 
-
-    // Returns the current weather for some coordinates, using Redis as cache.
-  // Flow: 1) look in the cache  2) if missing, ask Open-Meteo  3) save in the cache.
-  async weatherOLD(latitude: number, longitude: number): Promise<Weather> {
-    // The key is built from the coordinates rounded to 2 decimals (about 1 km),
-    // so nearby requests share the same cache entry. Example: "weather:48.86:2.35".
-    const cacheKey = `weather:${latitude.toFixed(2)}:${longitude.toFixed(2)}`;
-
-    // Step 1: cache lookup. The try/catch ignores Redis errors (e.g. Redis down):
-    // in that case we simply continue and ask Open-Meteo.
-    try {
-      const cached = await this.redis.get(cacheKey);
-      // Redis stores text, so we parse it back into an object. Cache hit: done.
-      if (cached) return JSON.parse(cached) as Weather;
-    } catch {}
-
-    // Step 2: build the Open-Meteo URL. searchParams adds ?latitude=..&longitude=..
-    // and takes care of the encoding.
-    const url = new URL('https://api.open-meteo.com/v1/forecast');
-    url.searchParams.set('latitude', String(latitude));
-    url.searchParams.set('longitude', String(longitude));
-    // "current" asks only for the two values we need right now.
-    url.searchParams.set('current', 'temperature_2m,weather_code');
-    // "as { current?: Weather }" tells TypeScript the shape we expect.
-    const data = await json(url) as { current?: Weather };
-    // Validate the answer: if the temperature is missing the response is useless,
-    // so we throw (the controller will report "unavailable").
-    if (typeof data.current?.temperature_2m !== 'number') throw new Error('Invalid weather response');
-
-    // Step 3: store the result in Redis as text, with an expiration (EX, seconds).
-    // Again, if Redis fails we ignore it: the answer is still valid.
-    try {
-      await this.redis.set(cacheKey, JSON.stringify(data.current), { EX: WEATHER_CACHE_TTL_SECONDS });
-    } catch {
-    }
-    return data.current;
-  }
-
-
-
-
   // Senza date restituisce il meteo corrente; con date quello dell'ora UTC
   // che contiene l'istante richiesto (es. 17:10Z -> previsione delle 17:00Z).
   // Una data fuori dalla copertura di Open-Meteo genera un errore: il controller
