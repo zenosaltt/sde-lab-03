@@ -98,15 +98,58 @@ export class ExternalService implements OnModuleDestroy {
     return data.current;
   }
 
-  // Returns the exchange rate from a currency to another, e.g. rate('EUR', 'USD')
-  // = 1.08 means 1 EUR = 1.08 USD. The rate is not cached.
-  async rate(from: string, to: string) {
-    // Frankfurter URL: .../rate/EUR/USD. The codes were already validated by
-    // the controller (exactly three letters).
-    const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
-    const data = await json(url) as { rate?: number };
-    // Check the answer really contains a usable number (not missing, NaN or Infinity).
-    if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) throw new Error('Invalid rate response');
-    return data.rate;
+  // ESEMPIO 1 — Query the external REST service Frankfurter.
+  // The objective is to implement rate('EUR', 'USD'), which, for example,
+  // returns the value of EUR in USD. This rate is later used as a multiplier
+  // to get the total price in USD.
+  async rate(from: string, to: string): Promise<number> {
+    // 1. Partire da GET /rate/EUR/USD della nostra API: il controller ha già
+    //    normalizzato i codici in maiuscolo e verificato le tre lettere.
+    //    Questo controllo non garantisce che Frankfurter supporti la valuta.
+
+    // 2. Costruire un oggetto URL per la risorsa esterna:
+    //    https://api.frankfurter.dev/v2/rate/{from}/{to}
+    //    Sostituire i segnaposto con i parametri. Non serve una chiave API.
+    //    Distinguere la rotta locale dalla richiesta HTTP verso Frankfurter.
+
+    // 3. Chiamare l'helper json(url) con await. Risalire alla sua definizione:
+    //    esegue una GET con fetch, interrompe l'attesa dopo 3 secondi,
+    //    controlla response.ok e deserializza il corpo JSON.
+    //    async/await permette di attendere la rete senza bloccare Node.js.
+
+    // 4. Leggere la proprietà rate dalla risposta. L'helper restituisce unknown:
+    //    descrivere la forma attesa con { rate?: number }, ricordando che
+    //    un'asserzione TypeScript non valida i dati ricevuti a runtime.
+    //    Verificare che rate sia un number e che Number.isFinite sia true;
+    //    altrimenti lanciare un errore, senza restituire un tasso inventato.
+
+    // 5. Restituire solo il tasso numerico, non l'intera risposta esterna.
+    //    Lasciare propagare gli errori: available(...) nel controller li
+    //    trasforma in { status: 'unavailable' }, mantenendo HTTP 200.
+
+    // 6. Dopo l'implementazione, provare GET /rate/EUR/USD: ci aspettiamo
+    //    { status: 'ok', data: <numero> }, il cui valore varia nel tempo.
+    //    Con /rate/EUR/US ci aspettiamo 400 dalla validazione locale;
+    //    con /rate/EUR/ZZZ ci aspettiamo 'unavailable' per l'errore esterno.
+
+    // TODO: implementare insieme i passi 2–5 e rimuovere questo placeholder.
+    // Nel frattempo il progetto resta compilabile e il controller segnala
+    // il cambio come indisponibile, anche nella risposta travel-options.
+    throw new Error('Not implemented');
   }
+
+  // async rate(from: string, to: string): Promise<number> {
+  //   // Set the URL with requested parameters.
+  //   const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
+  //
+  //   // Wait for GET and consequent JSON parsing
+  //   const data = await json(url) as { rate?: number };
+  //
+  //   // Sanity check
+  //   if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) {
+  //     throw new Error('Invalid rate response');
+  //   }
+  //
+  //   return data.rate;
+  // }
 }
