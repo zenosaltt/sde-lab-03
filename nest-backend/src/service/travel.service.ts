@@ -164,7 +164,6 @@ export class TravelService {
     }));
   }
 
-
   // All the hotels of one city: WHERE hotel.cityId = :cityId.
   // An empty array (not an error) is returned when the city has no hotels.
   hotelsIn(cityId: number) {
@@ -175,5 +174,11 @@ export class TravelService {
   // each with its departure and arrival city loaded.
   flightsTo(cityId: number) {
     return this.flights.find({ where: { arrivalCity: { id: cityId } }, relations: { departureCity: true, arrivalCity: true } });
+  }
+
+  async clearDB(): Promise<void> {
+    await this.hotels.deleteAll();
+    await this.flights.deleteAll();
+    await this.cities.deleteAll();
   }
 }

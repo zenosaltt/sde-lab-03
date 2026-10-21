@@ -21,24 +21,55 @@ type SeedFlight = {
 };
 type SeedHotel = { city: CityName; name: string; pricePerNight: number };
 
-export const flights: SeedFlight[] = [
-  { departureCity: 'Roma', arrivalCity: 'Parigi', departureTime: '2026-11-20T09:00:00Z', arrivalTime: '2026-11-20T11:00:00Z', airline: 'Demo Air', priceEur: 120 },
-  { departureCity: 'Roma', arrivalCity: 'Parigi', departureTime: '2026-11-20T15:00:00Z', arrivalTime: '2026-11-20T17:10:00Z', airline: 'Lab Wings', priceEur: 85.5 },
-  { departureCity: 'Milano', arrivalCity: 'Parigi', departureTime: '2026-11-21T08:00:00Z', arrivalTime: '2026-11-21T09:30:00Z', airline: 'Demo Air', priceEur: 95 },
-  { departureCity: 'Parigi', arrivalCity: 'Roma', departureTime: '2026-11-22T10:00:00Z', arrivalTime: '2026-11-22T12:00:00Z', airline: 'Lab Wings', priceEur: 110 },
-  { departureCity: 'Londra', arrivalCity: 'Roma', departureTime: '2026-11-23T07:00:00Z', arrivalTime: '2026-11-23T09:40:00Z', airline: 'Tutorial Jet', priceEur: 175.25 },
-  { departureCity: 'Madrid', arrivalCity: 'Milano', departureTime: '2026-11-24T12:00:00Z', arrivalTime: '2026-11-24T14:15:00Z', airline: 'Demo Air', priceEur: 130 },
-  { departureCity: 'Berlino', arrivalCity: 'Londra', departureTime: '2026-11-25T08:00:00Z', arrivalTime: '2026-11-25T10:00:00Z', airline: 'Lab Wings', priceEur: 99.9 },
-  { departureCity: 'Roma', arrivalCity: 'Londra', departureTime: '2026-11-26T11:00:00Z', arrivalTime: '2026-11-26T13:40:00Z', airline: 'Tutorial Jet', priceEur: 155 },
-  { departureCity: 'Milano', arrivalCity: 'Madrid', departureTime: '2026-01-27T06:00:00Z', arrivalTime: '2026-10-25T08:20:00Z', airline: 'Demo Air', priceEur: 105.75 },
-  { departureCity: 'Berlino', arrivalCity: 'Madrid', departureTime: '2026-01-28T13:00:00Z', arrivalTime: '2026-10-24T16:10:00Z', airline: 'Tutorial Jet', priceEur: 190 },
-  { departureCity: 'Parigi', arrivalCity: 'Londra', departureTime: '2026-01-29T17:00:00Z', arrivalTime: '2026-10-23T18:15:00Z', airline: 'Lab Wings', priceEur: 70 },
-  { departureCity: 'Roma', arrivalCity: 'New York', departureTime: '2026-12-01T10:00:00Z', arrivalTime: '2026-12-01T18:30:00Z', airline: 'Demo Air', priceEur: 540 },
-  { departureCity: 'Londra', arrivalCity: 'New York', departureTime: '2026-12-02T09:00:00Z', arrivalTime: '2026-12-02T17:00:00Z', airline: 'Tutorial Jet', priceEur: 480.5 },
-  { departureCity: 'Parigi', arrivalCity: 'Tokyo', departureTime: '2026-12-03T11:00:00Z', arrivalTime: '2026-12-04T05:30:00Z', airline: 'Lab Wings', priceEur: 910 },
-  { departureCity: 'Berlino', arrivalCity: 'Tokyo', departureTime: '2026-12-05T13:00:00Z', arrivalTime: '2026-12-06T07:45:00Z', airline: 'Demo Air', priceEur: 875.9 },
-  { departureCity: 'New York', arrivalCity: 'Roma', departureTime: '2026-12-10T22:00:00Z', arrivalTime: '2026-12-11T10:00:00Z', airline: 'Tutorial Jet', priceEur: 520 },
+
+const WINDOW_MS = 48 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+
+type FlightTemplate = Omit<SeedFlight, 'departureTime' | 'arrivalTime'> & {
+  durationMinutes: number;
+};
+
+const templates: FlightTemplate[] = [
+  { departureCity: 'Roma', arrivalCity: 'Parigi', airline: 'Demo Air', priceEur: 120, durationMinutes: 120 },
+  { departureCity: 'Roma', arrivalCity: 'Parigi', airline: 'Lab Wings', priceEur: 85.5, durationMinutes: 130 },
+  { departureCity: 'Milano', arrivalCity: 'Parigi', airline: 'Demo Air', priceEur: 95, durationMinutes: 90 },
+  { departureCity: 'Parigi', arrivalCity: 'Roma', airline: 'Lab Wings', priceEur: 110, durationMinutes: 120 },
+  { departureCity: 'Londra', arrivalCity: 'Roma', airline: 'Tutorial Jet', priceEur: 175.25, durationMinutes: 160 },
+  { departureCity: 'Madrid', arrivalCity: 'Milano', airline: 'Demo Air', priceEur: 130, durationMinutes: 135 },
+  { departureCity: 'Berlino', arrivalCity: 'Londra', airline: 'Lab Wings', priceEur: 99.9, durationMinutes: 120 },
+  { departureCity: 'Roma', arrivalCity: 'Londra', airline: 'Tutorial Jet', priceEur: 155, durationMinutes: 160 },
+  { departureCity: 'Milano', arrivalCity: 'Madrid', airline: 'Demo Air', priceEur: 105.75, durationMinutes: 140 },
+  { departureCity: 'Berlino', arrivalCity: 'Madrid', airline: 'Tutorial Jet', priceEur: 190, durationMinutes: 190 },
+  { departureCity: 'Parigi', arrivalCity: 'Londra', airline: 'Lab Wings', priceEur: 70, durationMinutes: 75 },
+  { departureCity: 'Roma', arrivalCity: 'New York', airline: 'Demo Air', priceEur: 540, durationMinutes: 510 },
+  { departureCity: 'Londra', arrivalCity: 'New York', airline: 'Tutorial Jet', priceEur: 480.5, durationMinutes: 480 },
+  { departureCity: 'Parigi', arrivalCity: 'Tokyo', airline: 'Lab Wings', priceEur: 910, durationMinutes: 1110 },
+  { departureCity: 'Berlino', arrivalCity: 'Tokyo', airline: 'Demo Air', priceEur: 875.9, durationMinutes: 1125 },
+  { departureCity: 'New York', arrivalCity: 'Roma', airline: 'Tutorial Jet', priceEur: 520, durationMinutes: 720 },
 ];
+
+/**
+ * Returns the seed flights. Every flight departs at a random moment and
+ * arrives (after its fixed duration) before the end of the next 48 hours.
+ */
+export function getFlights(): SeedFlight[] {
+  const now: Date = new Date()
+  const start = now.getTime();
+
+  return templates.map(({ durationMinutes, ...flight }) => {
+    const durationMs = durationMinutes * MINUTE_MS;
+    // Latest possible departure so that arrival still falls inside the window.
+    const maxDepartureOffset = Math.max(0, WINDOW_MS - durationMs);
+    const departure = start + Math.random() * maxDepartureOffset;
+    const arrival = departure + durationMs;
+
+    return {
+      ...flight,
+      departureTime: new Date(departure).toISOString(),
+      arrivalTime: new Date(arrival).toISOString(),
+    };
+  });
+}
 
 export const hotels: SeedHotel[] = [
   { city: 'Roma', name: 'Demo Hotel Colosseo', pricePerNight: 145 },
