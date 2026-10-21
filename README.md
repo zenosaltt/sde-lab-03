@@ -47,7 +47,27 @@ docker compose exec backend npm run seed
 docker compose logs -f backend
 ```
 
-L'API risponde su `http://localhost:3000`. Il backend attende che MySQL sia pronto; in rete Docker usa `mysql` e `redis` come host, indipendentemente dagli host locali in `.env`. Le tabelle sono create automaticamente da TypeORM (`synchronize: true`), utile per il laboratorio.
+Il backend attende che MySQL sia pronto. Nella rete Docker usa `mysql` e `redis` come host, indipendentemente dagli host locali in `.env`. Le tabelle sono create automaticamente da TypeORM (`synchronize: true`), utile per il laboratorio.
+
+### Provare le API
+
+Quando l'ambiente è avviato, l'API risponde su `http://localhost:3000`. Si può provare in due modi, equivalenti tra loro:
+
+| | Interfaccia web | Terminale |
+| --- | --- | --- |
+| **Come si usa** | aprire [http://localhost:3000](http://localhost:3000) nel browser | eseguire richieste `curl` (o importarle in Postman) |
+| **Adatta a** | esplorare i dati ed eseguire richieste `GET` con pochi clic | creare dati con `POST` e controllare l'intera risposta |
+| **Cosa mostra** | codice HTTP e JSON della risposta, più le tabelle di città, voli e hotel presenti nel database | l'output grezzo della risposta, da copiare nella consegna |
+
+**Interfaccia web.** Scegliere l'endpoint dal menu, compilare i campi che compaiono (ID, valuta) e premere **Send**. Gli endpoint degli esercizi e del compito sono nel menu: finché il metodo non è stato scritto, la pagina mostra *Not implemented yet*. Le tabelle in fondo alla pagina (da aprire con un clic) mostrano gli ID esistenti. La pagina permette solo richieste `GET`: per creare dati usare il terminale.
+
+**Terminale.** Esempio di richiesta `GET`:
+
+```bash
+curl -sS 'http://localhost:3000/cities/3/travel-options?currency=USD'
+```
+
+Per le richieste `POST` e per la sequenza completa di inserimento vedere [Inserimento manuale facoltativo](#inserimento-manuale-facoltativo).
 
 ### Modificare il codice durante gli esercizi
 
