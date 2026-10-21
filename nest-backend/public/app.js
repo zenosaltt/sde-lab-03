@@ -36,10 +36,23 @@ form.addEventListener('submit', async (event) => {
 
     // The body is JSON for working routes and for errors (400, 404).
     const text = await response.text();
+    let data = text;
     try {
-      resultEl.textContent = JSON.stringify(JSON.parse(text), null, 2);
+      data = JSON.parse(text);
+      resultEl.textContent = JSON.stringify(data, null, 2);
     } catch {
       resultEl.textContent = text;
+    }
+
+    // Exercise and assignment endpoints do not exist until the student writes them.
+    // Nest then answers 404 "Cannot GET ...": a different case from a real
+    // "City not found" 404, which comes from an implemented route.
+    const isExercise = endpoint.selectedOptions[0].hasAttribute('data-todo');
+    const routeMissing = response.status === 404 && String(data.message ?? data).startsWith('Cannot GET');
+    if (isExercise && routeMissing) {
+      statusEl.textContent = 'Not implemented yet';
+      resultEl.textContent = 'This endpoint does not exist in the backend yet.\n' +
+        'Add the method to travel.controller.ts (see the comments of the exercise) and try again.';
     }
   } catch (error) {
     statusEl.textContent = 'No answer from the backend';
