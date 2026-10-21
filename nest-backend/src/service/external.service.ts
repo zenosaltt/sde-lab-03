@@ -11,7 +11,7 @@ const WEATHER_CACHE_TTL_SECONDS = 600;
 
 // The part of the Open-Meteo answer we use. "?" means the field may be missing,
 // so TypeScript forces us to check before relying on it.
-type Weather = { temperature_2m?: number; weather_code?: number; time?: string };
+type Weather = { temperature_2m?: number; weather_code?: number; time?: string; temperatureUnit?: string };
 
 // Downloads JSON from a URL. Throws an error (never returns bad data) when:
 // - the server does not answer within TIMEOUT_MS (AbortSignal.timeout aborts the request),
@@ -61,41 +61,84 @@ export class ExternalService implements OnModuleDestroy {
     await this.redis.quit().catch(() => {});
   }
 
-  // Returns the current weather for some coordinates, using Redis as cache.
-  // Flow: 1) look in the cache  2) if missing, ask Open-Meteo  3) save in the cache.
-  async weather(latitude: number, longitude: number): Promise<Weather> {
-    // The key is built from the coordinates rounded to 2 decimals (about 1 km),
-    // so nearby requests share the same cache entry. Example: "weather:48.86:2.35".
-    const cacheKey = `weather:${latitude.toFixed(2)}:${longitude.toFixed(2)}`;
+  // Senza date restituisce il meteo corrente; con date quello dell'ora UTC
+  // che contiene l'istante richiesto (es. 17:10Z -> previsione delle 17:00Z).
+  // Una data fuori dalla copertura di Open-Meteo genera un errore: il controller
+  // lo converte in unavailable, senza ripiegare sul meteo corrente.
+  async weather(latitude: number, longitude: number, date?: Date): Promise<Weather> {
+    // Validare la data prima della cache e della rete. Date è un oggetto JavaScript,
+    // non una stringa: i voli caricati da TypeORM hanno già arrivalTime di tipo Date.
+    if (date !== undefined && (!(date instanceof Date) || !Number.isFinite(date.getTime()))) {
+      throw new Error('Invalid weather date');
+    }
+    const hour = date === undefined ? undefined : Math.floor(date.getTime() / 3600000) * 3600;
+    // Conserviamo la chiave originale per il meteo corrente; per una previsione
+    // aggiungiamo l'ora richiesta, così date diverse non condividono lo stesso dato.
+    const cacheKey = `weather:${latitude.toFixed(2)}:${longitude.toFixed(2)}` +
+      (hour === undefined ? '' : `:${hour}`);
 
-    // Step 1: cache lookup. The try/catch ignores Redis errors (e.g. Redis down):
-    // in that case we simply continue and ask Open-Meteo.
+    // 1. La cache è facoltativa: un errore Redis non impedisce la chiamata HTTP.
     try {
       const cached = await this.redis.get(cacheKey);
-      // Redis stores text, so we parse it back into an object. Cache hit: done.
       if (cached) return JSON.parse(cached) as Weather;
     } catch {}
 
-    // Step 2: build the Open-Meteo URL. searchParams adds ?latitude=..&longitude=..
-    // and takes care of the encoding.
-    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    // 2. Riutilizziamo json(url): GET, timeout di 3 secondi e controllo HTTP.
+    // Il base URL opzionale permette di verificare il servizio con provider simulati.
+    const baseUrl = process.env.TRAVEL_WEATHER_BASE_URL ?? 'https://api.open-meteo.com';
+    const url = new URL(`${baseUrl}/v1/forecast`);
     url.searchParams.set('latitude', String(latitude));
     url.searchParams.set('longitude', String(longitude));
-    // "current" asks only for the two values we need right now.
-    url.searchParams.set('current', 'temperature_2m,weather_code');
-    // "as { current?: Weather }" tells TypeScript the shape we expect.
-    const data = await json(url) as { current?: Weather };
-    // Validate the answer: if the temperature is missing the response is useless,
-    // so we throw (the controller will report "unavailable").
-    if (typeof data.current?.temperature_2m !== 'number') throw new Error('Invalid weather response');
+    let weather: Weather;
 
-    // Step 3: store the result in Redis as text, with an expiration (EX, seconds).
-    // Again, if Redis fails we ignore it: the answer is still valid.
-    try {
-      await this.redis.set(cacheKey, JSON.stringify(data.current), { EX: WEATHER_CACHE_TTL_SECONDS });
-    } catch {
+    if (hour === undefined) {
+      // Compatibilità con le chiamate esistenti a weather(latitude, longitude).
+      url.searchParams.set('current', 'temperature_2m,weather_code');
+      const data = await json(url) as { current?: Weather } | null;
+      if (typeof data?.current?.temperature_2m !== 'number' ||
+          !Number.isFinite(data.current.temperature_2m)) {
+        throw new Error('Invalid weather response');
+      }
+      weather = data.current;
+    } else {
+      // Chiediamo le ore della data UTC di arrivo. Unix time evita interpretazioni
+      // nel fuso locale del server; tutti gli array usano lo stesso indice orario.
+      const day = new Date(hour * 1000).toISOString().slice(0, 10);
+      url.searchParams.set('hourly', 'temperature_2m,weather_code');
+      url.searchParams.set('temperature_unit', 'celsius');
+      url.searchParams.set('timezone', 'GMT');
+      url.searchParams.set('timeformat', 'unixtime');
+      url.searchParams.set('start_date', day);
+      url.searchParams.set('end_date', day);
+      const data = await json(url) as {
+        hourly?: { time?: unknown; temperature_2m?: unknown; weather_code?: unknown };
+      } | null;
+      const hourly = data?.hourly;
+      if (!Array.isArray(hourly?.time) || !Array.isArray(hourly?.temperature_2m) ||
+          !Array.isArray(hourly?.weather_code)) {
+        throw new Error('Invalid hourly weather response');
+      }
+      const index = hourly.time.indexOf(hour);
+      const temperature = hourly.temperature_2m[index];
+      const code = hourly.weather_code[index];
+      if (index < 0 || typeof temperature !== 'number' || !Number.isFinite(temperature) ||
+          typeof code !== 'number' || !Number.isInteger(code) || code < 0 || code > 99) {
+        throw new Error('Requested weather unavailable');
+      }
+      weather = {
+        time: new Date(hour * 1000).toISOString(),
+        temperature_2m: temperature,
+        temperatureUnit: '°C',
+        weather_code: code,
+      };
     }
-    return data.current;
+
+    // 3. Memorizziamo lo stesso oggetto restituito al chiamante. La scadenza resta
+    // di 10 minuti e un errore di scrittura Redis non altera la risposta HTTP.
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(weather), { EX: WEATHER_CACHE_TTL_SECONDS });
+    } catch {}
+    return weather;
   }
 
   // ESEMPIO 1 — Query the external REST service Frankfurter.

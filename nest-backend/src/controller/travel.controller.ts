@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -82,11 +83,39 @@ function convertPrice(priceEur: number, rate: number | null): number | null {
   return Math.round(Number(priceEur) * rate * 100) / 100;
 }
 
+// Helper per il cambio valuta: come ExternalService, ogni richiesta esterna
+// ha un timeout di 3 secondi e controlla HTTP prima di leggere il JSON.
+// I chiamanti devono validare i dati: il provider non è una fonte tipizzata.
+async function externalJson(url: URL): Promise<unknown> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+  if (!response.ok) throw new Error(`Upstream HTTP ${response.status}`);
+  return response.json();
+}
+
+// Frankfurter: https://frankfurter.dev/ — cambio da EUR alla valuta richiesta.
+// Il tasso è quello più recente pubblicato, non un prezzo di prenotazione futuro.
+async function rateFromEur(currency: string): Promise<number> {
+  if (currency === DEFAULT_CURRENCY) return 1;
+  const baseUrl = process.env.TRAVEL_EXCHANGE_BASE_URL ?? "https://api.frankfurter.dev";
+  const url = new URL(`${baseUrl}/v2/rate/EUR/${currency}`);
+  const data = await externalJson(url) as { rate?: unknown } | null;
+  if (typeof data?.rate !== "number" || !Number.isFinite(data.rate) || data.rate <= 0) {
+    throw new Error("Invalid exchange rate response");
+  }
+  return data.rate;
+}
+
+// I prezzi persistiti hanno due decimali: sommarli in centesimi evita risultati
+// come 0.1 + 0.2 = 0.30000000000000004 nella business logic.
+function cents(price: number): number {
+  return Math.round(Number(price) * 100);
+}
+
 // @Controller() marks the class as a set of HTTP routes. No prefix is given,
 // so each route below uses its full path (e.g. /cities).
-// The controller only handles HTTP: it reads parameters, calls the services
-// and builds the response. Database logic is in TravelService, external APIs
-// are in ExternalService.
+// Il controller legge i parametri e compone la risposta. Il database resta in
+// TravelService; il meteo passa da ExternalService e il cambio dell'esempio
+// hotel usa l'helper sopra finché ExternalService.rate resta un TODO.
 @Controller()
 export class TravelController {
   // NestJS creates the two services and passes them here (dependency injection).
@@ -172,195 +201,113 @@ export class TravelController {
     return await available(this.external.rate(from, to));
   }
 
-  // Aggregated endpoint
+  // ---------------------------------------------------------------------------
+  // SOLUZIONE PROPOSTA 1 — esempio guidato: volo + meteo all'arrivo.
+  // GET /flights/1/weather
+  // Composizione sequenziale: prima il dato interno, poi la richiesta esterna
+  // costruita con coordinate della destinazione e orario di arrivo del volo.
+  // 400: ID non valido; 404: volo assente; 200: volo con meteo o unavailable.
+  // ---------------------------------------------------------------------------
+  @Get("flights/:id/weather")
+  async getFlightWeather(@Param("id", ParseIntPipe) id: number) {
+    // 1. Il servizio carica il volo con arrivalCity; non serve una seconda query
+    //    per ricavare le coordinate della destinazione.
+    const flight = await this.travel.flight(requirePositiveId(id));
 
-  // GET /cities/3/travel-options?currency=USD
-  // Combines local data (city, hotels, flights from MySQL) with external data
-  // (weather from Open-Meteo, exchange rate from Frankfurter) in one response.
-  @Get("cities/:id/travel-options")
-  async getTravelOptions(
+    // 2. Passiamo arrivalTime al terzo parametro opzionale di ExternalService.weather.
+    //    Senza data lo stesso metodo continua a restituire il meteo corrente.
+    // 3. available intercetta timeout, risposte invalide e date fuori previsione:
+    //    il volo resta consultabile anche quando manca il meteo.
+    const weather = await available(this.external.weather(
+      flight.arrivalCity.latitude,
+      flight.arrivalCity.longitude,
+      flight.arrivalTime,
+    ));
+
+    // 4. I dati interni restano distinti dal risultato della composizione esterna.
+    //    weather.data.time indica l'inizio dell'ora UTC che contiene l'arrivo:
+    //    per esempio, arrivo alle 17:10Z -> previsione delle 17:00Z.
+    return { flight, weather };
+  }
+
+  // ---------------------------------------------------------------------------
+  // SOLUZIONE PROPOSTA 2 — hotel + cambio valuta.
+  // GET /hotels/1/price?currency=USD; senza currency si usa EUR.
+  // Tutti i prezzi nel database sono già in EURO, anche per città non europee:
+  // city.currency NON è la valuta di partenza del prezzo dell'hotel.
+  // Come nel primo esempio: dato interno -> API esterna -> risposta composta.
+  // ---------------------------------------------------------------------------
+  @Get("hotels/:id/price")
+  async getHotelPrice(
     @Param("id", ParseIntPipe) id: number,
-    // "?" = optional: it is undefined when the client sends no ?currency=
     @Query("currency") requestedCurrency?: string,
   ) {
-    // 1) Local data that everything else depends on: the city (404 if missing).
-    //    We need its coordinates (for the weather) and its id (for hotels/flights).
-    const city = await this.travel.city(requirePositiveId(id));
-    // 2) Validate the currency BEFORE calling anything external (400 if invalid).
+    // Validare l'input prima di contattare il database o un provider esterno.
     const currency = parseCurrency(requestedCurrency);
+    const hotel = await this.travel.hotel(requirePositiveId(id));
 
-    // 3) Four independent calls started together with Promise.all, so the total
-    //    time is that of the slowest one, not the sum of the four.
-    //    - hotels and flights come from MySQL; if they fail, the whole request fails.
-    //    - weather and exchange are wrapped in available(): if they fail we still
-    //      answer, just marking that section as unavailable.
-    //    The result array is unpacked in the same order as the calls.
-    const [hotels, flights, weather, exchange] = await Promise.all([
-      this.travel.hotelsIn(city.id),
-      this.travel.flightsTo(city.id),
-      available(this.external.weather(city.latitude, city.longitude)),
-      available(this.external.rate("EUR", currency)),
-    ]);
-
-    // The rate is a plain number when the call worked, null otherwise.
-    // convertPrice() handles null by returning null prices.
+    // EUR -> EUR vale sempre 1: non dipende dalla disponibilità di Frankfurter.
+    // rateFromEur esegue qui la chiamata perché ExternalService.rate è ancora
+    // un TODO del laboratorio; il meteo invece riutilizza ExternalService.weather.
+    const exchange = await available(rateFromEur(currency));
     const rate = exchange.status === "ok" ? exchange.data : null;
 
+    // Non sovrascrivere il prezzo originale nell'entità né nel database.
+    // Se il cambio fallisce: HTTP 200, pricePerNight null, importo EUR disponibile.
     return {
-      city,
+      hotel,
+      pricePerNightEur: hotel.pricePerNight,
       currency,
-      weather, // { status: 'ok', data: {...} } or { status: 'unavailable' }
-      exchange, // same shape: the rate EUR -> requested currency
-      // map() builds a new array. "...hotel" copies all the hotel fields
-      // (including the original price in EUR) and then pricePerNight is
-      // overwritten with the converted value.
-      hotels: hotels.map((hotel) => ({
-        ...hotel,
-        pricePerNight: convertPrice(hotel.pricePerNight, rate),
-      })),
-      // Flights keep priceEur (original) and get a new field "price" (converted).
-      inboundFlights: flights.map((flight) => ({
-        ...flight,
-        price: convertPrice(flight.priceEur, rate),
-      })),
+      exchange,
+      pricePerNight: convertPrice(hotel.pricePerNight, rate),
     };
   }
 
   // ---------------------------------------------------------------------------
-  // LAB EXERCISES (remove solutions before the lab)
+  // SOLUZIONE PROPOSTA 3 — business logic: volo + hotel più economici.
+  // GET /cities/3/cheapest-trip
+  // Contratto del laboratorio: un volo di andata da qualsiasi origine + UNA notte
+  // in hotel, entrambi per la città richiesta, totale in EUR. Non è una verifica
+  // di disponibilità: il modello non contiene camere, check-in o prenotazioni.
+  // 404 se la città non esiste oppure manca una delle due componenti.
   // ---------------------------------------------------------------------------
+  @Get("cities/:id/cheapest-trip")
+  async getCheapestTrip(@Param("id", ParseIntPipe) id: number) {
+    const city = await this.travel.city(requirePositiveId(id));
 
-  // EXERCISE 1 (easy): city weather
-  //
-  // Goal: GET /cities/:id/weather
-  // Combine one internal call (the city) with one external call (the weather).
-  //
-  // Expected response:
-  //   {
-  //     "city":    { "id": 3, "name": "Parigi", "latitude": 48.8566, ... },
-  //     "weather": { "status": "ok", "data": { "temperature_2m": 11.4, "weather_code": 3 } }
-  //   }
-  //
-  // Hints:
-  //   1. Add a method with @Get('cities/:id/weather') and take the id with
-  //      @Param('id', ParseIntPipe), like getCity does.
-  //   2. Internal call first: await this.travel.city(requirePositiveId(id)).
-  //      It already throws 404 if the city does not exist.
-  //   3. External call second: this.external.weather(city.latitude, city.longitude).
-  //      It needs the coordinates from step 2, so it must run AFTER it
-  //      (sequential composition).
-  //   4. Wrap the external call in available(...) so that an Open-Meteo failure
-  //      returns { status: 'unavailable' } instead of a 500.
-  //   5. Return { city, weather }.
-  //
-  // Test: /cities/3/weather -> 200, /cities/999/weather -> 404,
-  //       /cities/0/weather -> 400.
-  //
-  // SOLUTION:
-  // @Get('cities/:id/weather')
-  // async getCityWeather(@Param('id', ParseIntPipe) id: number) {
-  //   const city = await this.travel.city(requirePositiveId(id));
-  //   const weather = await available(this.external.weather(city.latitude, city.longitude));
-  //   return { city, weather };
-  // }
+    // Le due letture interne sono indipendenti: possono partire in parallelo.
+    // Un errore del database si propaga: available è riservato ai dati esterni.
+    const [flights, hotels] = await Promise.all([
+      this.travel.flightsTo(city.id),
+      this.travel.hotelsIn(city.id),
+    ]);
+    if (flights.length === 0 || hotels.length === 0) {
+      throw new NotFoundException("No flight-hotel combination for this city");
+    }
 
-  // EXERCISE 2 (easy+): city overview
-  //
-  // Goal: GET /cities/:id/overview
-  // Return the city, its weather (as in exercise 1) and its hotels.
-  //
-  // Expected response:
-  //   {
-  //     "city":    { "id": 3, "name": "Parigi", ... },
-  //     "weather": { "status": "ok", "data": { ... } },
-  //     "hotels":  [ { "id": 6, "name": "Demo Hotel Senna", "pricePerNight": 90 }, ... ]
-  //   }
-  //
-  // Hints:
-  //   1. Start from your exercise 1 method: same route pattern, same pipes.
-  //   2. Get the city first with this.travel.city(...). You need its id and
-  //      its coordinates for the next calls.
-  //   3. The two remaining calls do not depend on each other, so run them in
-  //      parallel with Promise.all([...]):
-  //        - this.travel.hotelsIn(city.id)                                (internal)
-  //        - available(this.external.weather(city.latitude, city.longitude)) (external)
-  //   4. Return { city, weather, hotels }.
-  //
-  // Test: /cities/3/overview -> city + weather + 3 hotels,
-  //       /cities/5/overview -> Madrid, a single hotel (every seeded city has at least one),
-  //       /cities/999/overview -> 404.
-  //
-  // Bonus: add ?currency= and convert the hotel prices, like getTravelOptions does
-  //        (parseCurrency, this.external.rate, convertPrice).
-  //
-  // SOLUTION:
-  // @Get('cities/:id/overview')
-  // async getCityOverview(@Param('id', ParseIntPipe) id: number) {
-  //   const city = await this.travel.city(requirePositiveId(id));
-  //   const [weather, hotels] = await Promise.all([
-  //     available(this.external.weather(city.latitude, city.longitude)),
-  //     this.travel.hotelsIn(city.id),
-  //   ]);
-  //   return { city, weather, hotels };
-  // }
+    // Ogni volo è combinabile con ogni hotel della stessa destinazione e non ci
+    // sono sconti di pacchetto: min(volo + hotel) = min(volo) + min(hotel).
+    // Bastano due scansioni, O(voli + hotel), senza costruire tutte le coppie.
+    // Confrontiamo centesimi interi; a parità di prezzo scegliamo l'ID minore
+    // per ottenere lo stesso risultato indipendentemente dall'ordine delle query.
+    const flight = flights.reduce((best, candidate) => {
+      const difference = cents(candidate.priceEur) - cents(best.priceEur);
+      return difference < 0 || (difference === 0 && candidate.id < best.id)
+        ? candidate : best;
+    });
+    const hotel = hotels.reduce((best, candidate) => {
+      const difference = cents(candidate.pricePerNight) - cents(best.pricePerNight);
+      return difference < 0 || (difference === 0 && candidate.id < best.id)
+        ? candidate : best;
+    });
 
-  // EXERCISE 3 (easy): flight with arrival weather
-  //
-  // Goal: GET /flights/:id/weather
-  // Same pattern as exercise 1, but starting from a flight.
-  //
-  // Expected response:
-  //   {
-  //     "flight":  { "id": 1, "airline": "Demo Air", "arrivalCity": { "name": "Parigi", ... }, ... },
-  //     "weather": { "status": "ok", "data": { "temperature_2m": 11.4, "weather_code": 3 } }
-  //   }
-  //
-  // Hints:
-  //   1. @Get('flights/:id/weather'), id with ParseIntPipe, like getFlight.
-  //   2. this.travel.flight(requirePositiveId(id)) throws 404 if missing and
-  //      already loads flight.arrivalCity.
-  //   3. Weather of the ARRIVAL city, wrapped in available(...).
-  //   4. Return { flight, weather }.
-  //
-  // Test: /flights/1/weather -> 200, /flights/999/weather -> 404, /flights/0/weather -> 400.
-  //
-  // SOLUTION:
-  // @Get('flights/:id/weather')
-  // async getFlightWeather(@Param('id', ParseIntPipe) id: number) {
-  //   const flight = await this.travel.flight(requirePositiveId(id));
-  //   const weather = await available(
-  //     this.external.weather(flight.arrivalCity.latitude, flight.arrivalCity.longitude),
-  //   );
-  //   return { flight, weather };
-  // }
-
-  // EXERCISE 4 (easy+): cheapest hotel
-  //
-  // Goal: GET /cities/:id/hotels/cheapest
-  // Return the city and its cheapest hotel. No external call.
-  //
-  // Expected response:
-  //   { "city": { "id": 3, "name": "Parigi", ... },
-  //     "hotel": { "id": 6, "name": "Demo Hotel Senna", "pricePerNight": 90 } }
-  //
-  // Hints:
-  //   1. Get the city (404 if missing), then this.travel.hotelsIn(city.id).
-  //   2. If the list is empty throw new NotFoundException('No hotels in this city')
-  //      (import NotFoundException from @nestjs/common).
-  //   3. Find the minimum pricePerNight with reduce.
-  //
-  // Test: /cities/3/hotels/cheapest -> Senna (90), /cities/999/hotels/cheapest -> 404,
-  //       a city created with POST /cities and no hotels -> 404.
-  //
-  // SOLUTION:
-  // @Get('cities/:id/hotels/cheapest')
-  // async getCheapestHotel(@Param('id', ParseIntPipe) id: number) {
-  //   const city = await this.travel.city(requirePositiveId(id));
-  //   const hotels = await this.travel.hotelsIn(city.id);
-  //   if (hotels.length === 0) {
-  //     throw new NotFoundException('No hotels in this city');
-  //   }
-  //   const hotel = hotels.reduce((best, h) => (h.pricePerNight < best.pricePerNight ? h : best));
-  //   return { city, hotel };
-  // }
+    return {
+      city,
+      flight,
+      hotel,
+      nights: 1,
+      currency: DEFAULT_CURRENCY,
+      totalPriceEur: (cents(flight.priceEur) + cents(hotel.pricePerNight)) / 100,
+    };
+  }
 }
