@@ -140,13 +140,6 @@ export class TravelController {
     return this.travel.city(requirePositiveId(id));
   }
 
-  // POST /cities -> creates a city from the JSON body. The service validates the fields.
-  // @Body() gives us the JSON sent by the client; we first check it is an object.
-  @Post("cities")
-  createCity(@Body() body: unknown) {
-    return this.travel.createCity(requireJsonObject(body));
-  }
-
   // Flights
 
   // GET /flights -> all flights, with departure and arrival city.
@@ -161,12 +154,6 @@ export class TravelController {
     return this.travel.flight(requirePositiveId(id));
   }
 
-  // POST /flights -> creates a flight (the service checks cities, dates and price).
-  @Post("flights")
-  createFlight(@Body() body: unknown) {
-    return this.travel.createFlight(requireJsonObject(body));
-  }
-
   // Hotels
 
   // GET /hotels -> all hotels, each with its city.
@@ -179,12 +166,6 @@ export class TravelController {
   @Get("hotels/:id")
   getHotel(@Param("id", ParseIntPipe) id: number) {
     return this.travel.hotel(requirePositiveId(id));
-  }
-
-  // POST /hotels -> creates a hotel in an existing city.
-  @Post("hotels")
-  createHotel(@Body() body: unknown) {
-    return this.travel.createHotel(requireJsonObject(body));
   }
 
   // External exchange rate
