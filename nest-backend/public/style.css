@@ -37,10 +37,6 @@ header {
 header h1, header p { margin: 0; }
 header p { margin-top: 0.3rem; opacity: 0.9; }
 
-.skyline {
-  float: right;
-  width: 120px;
-}
 
 main {
   max-width: 800px;
@@ -56,11 +52,15 @@ main {
   margin-bottom: 1.5rem;
 }
 
-h2 {
-  margin-top: 0;
+summary {
   color: var(--blue);
   font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 0.8rem;
 }
+
+details:not([open]) summary { margin-bottom: 0; }
 
 form {
   display: flex;
@@ -77,6 +77,8 @@ label {
   font-weight: bold;
   color: var(--blue-dark);
 }
+
+[hidden] { display: none; }
 
 input, select, button {
   font-size: 1rem;

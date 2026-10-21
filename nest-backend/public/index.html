@@ -45,11 +45,11 @@
       </select>
     </label>
 
-    <label>ID
+    <label id="id-field">ID
       <input id="id" type="text" value="1">
     </label>
 
-    <label>Currency
+    <label id="currency-field">Currency
       <input id="currency" type="text" value="USD" maxlength="3">
     </label>
 
@@ -62,12 +62,33 @@
   </section>
 
   <section class="card">
-  <img src="city.svg" alt="" class="skyline">
-  <h2>Cities in the database</h2>
+  <details>
+    <summary>Cities in the database</summary>
   <table id="cities">
     <thead><tr><th>ID</th><th>Name</th><th>Currency</th></tr></thead>
     <tbody></tbody>
   </table>
+  </details>
+  </section>
+
+  <section class="card">
+  <details>
+    <summary>Flights in the database</summary>
+  <table id="flights">
+    <thead><tr><th>ID</th><th>From</th><th>To</th><th>Departure (UTC)</th><th>Airline</th><th>Price (EUR)</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </details>
+  </section>
+
+  <section class="card">
+  <details>
+    <summary>Hotels in the database</summary>
+  <table id="hotels">
+    <thead><tr><th>ID</th><th>Name</th><th>City</th><th>Price per night (EUR)</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </details>
   </section>
   </main>
 

@@ -6,6 +6,15 @@ const requestEl = document.getElementById('request');
 const statusEl = document.getElementById('status');
 const resultEl = document.getElementById('result');
 
+// Show an input only if the selected endpoint uses it ({id} or {currency} in its path).
+function updateFields() {
+  document.getElementById('id-field').hidden = !endpoint.value.includes('{id}');
+  document.getElementById('currency-field').hidden = !endpoint.value.includes('{currency}');
+}
+
+endpoint.addEventListener('change', updateFields);
+updateFields();
+
 // Replace {id} and {currency} in the chosen path with the values typed by the user.
 function buildPath() {
   return endpoint.value
@@ -39,20 +48,32 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-// Fill the table of cities, so the user knows which IDs exist.
-async function loadCities() {
-  const body = document.querySelector('#cities tbody');
+// Fill a table with the rows returned by a GET endpoint, so the user knows
+// which IDs exist. "toCells" turns one item of the JSON array into the cell values.
+async function fillTable(tableId, path, toCells) {
+  const body = document.querySelector('#' + tableId + ' tbody');
   try {
-    const cities = await (await fetch('/cities')).json();
-    for (const city of cities) {
+    const items = await (await fetch(path)).json();
+    for (const item of items) {
       const row = body.insertRow();
-      row.insertCell().textContent = city.id;
-      row.insertCell().textContent = city.name;
-      row.insertCell().textContent = city.currency;
+      for (const value of toCells(item)) {
+        row.insertCell().textContent = value;
+      }
     }
   } catch {
-    body.insertRow().insertCell().textContent = 'Could not load the cities.';
+    body.insertRow().insertCell().textContent = 'Could not load the data.';
   }
 }
 
-loadCities();
+fillTable('cities', '/cities', (c) => [c.id, c.name, c.currency]);
+
+fillTable('flights', '/flights', (f) => [
+  f.id,
+  f.departureCity.name,
+  f.arrivalCity.name,
+  f.departureTime.replace('T', ' ').slice(0, 16),
+  f.airline,
+  f.priceEur,
+]);
+
+fillTable('hotels', '/hotels', (h) => [h.id, h.name, h.city.name, h.pricePerNight]);
