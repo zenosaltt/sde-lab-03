@@ -1,0 +1,136 @@
+:root {
+  --blue: #1d5fa8;
+  --blue-dark: #174a85;
+  --sky: #e8f1fb;
+  --orange: #f08a24;
+  --green: #1e8a4c;
+  --red: #c8392b;
+  --border: #c9d6e6;
+}
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  background: var(--sky);
+  color: #1f2933;
+}
+
+header {
+  background: var(--blue);
+  color: white;
+  padding: 1.5rem 1rem;
+  border-bottom: 4px solid var(--orange);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: max(1rem, calc((100% - 800px) / 2 + 1rem));
+  padding-right: max(1rem, calc((100% - 800px) / 2 + 1rem));
+}
+
+.title { display: flex; align-items: center; gap: 1rem; }
+.plane { width: 48px; transform: rotate(-20deg); }
+.sun { width: 64px; }
+
+header h1, header p { margin: 0; }
+header p { margin-top: 0.3rem; opacity: 0.9; }
+
+.skyline {
+  float: right;
+  width: 120px;
+}
+
+main {
+  max-width: 800px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 0;
+  color: var(--blue);
+  font-size: 1.2rem;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--blue-dark);
+}
+
+input, select, button {
+  font-size: 1rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+input { width: 6rem; }
+select { min-width: 22rem; max-width: 100%; }
+
+button {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: white;
+  font-weight: bold;
+  padding: 0.4rem 1.2rem;
+  cursor: pointer;
+}
+
+button:hover { background: #d97712; }
+
+code {
+  background: var(--sky);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+pre {
+  background: #14283f;
+  color: #d7e6f7;
+  border-radius: 4px;
+  padding: 1rem;
+  overflow: auto;
+  max-height: 28rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.8rem;
+  text-align: left;
+}
+
+th {
+  background: var(--blue);
+  color: white;
+}
+
+tbody tr:nth-child(even) { background: var(--sky); }
+
+.ok { color: var(--green); }
+.error { color: var(--red); }

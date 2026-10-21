@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Travel API lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="title">
+      <img src="plane.svg" alt="" class="plane">
+      <div>
+        <h1>Travel API lab</h1>
+        <p>Pick an endpoint, fill in the values and press Send.</p>
+      </div>
+    </div>
+    <img src="sun.svg" alt="" class="sun">
+  </header>
+
+  <main>
+  <section class="card">
+  <form id="form">
+    <label>Endpoint
+      <select id="endpoint">
+        <optgroup label="Provided">
+          <option value="/cities">GET /cities</option>
+          <option value="/cities/{id}">GET /cities/:id</option>
+          <option value="/flights">GET /flights</option>
+          <option value="/flights/{id}">GET /flights/:id</option>
+          <option value="/hotels">GET /hotels</option>
+          <option value="/hotels/{id}">GET /hotels/:id</option>
+          <option value="/rate/EUR/{currency}">GET /rate/EUR/:currency</option>
+          <option value="/cities/{id}/travel-options?currency={currency}">GET /cities/:id/travel-options</option>
+        </optgroup>
+        <optgroup label="Exercises">
+          <option value="/cities/{id}/weather">Ex. 1: GET /cities/:id/weather</option>
+          <option value="/cities/{id}/overview">Ex. 2: GET /cities/:id/overview</option>
+          <option value="/flights/{id}/weather">Ex. 3: GET /flights/:id/weather</option>
+          <option value="/cities/{id}/hotels/cheapest">Ex. 4: GET /cities/:id/hotels/cheapest</option>
+        </optgroup>
+        <optgroup label="Assignment">
+          <option value="/flights/{id}/price?currency={currency}">GET /flights/:id/price</option>
+        </optgroup>
+      </select>
+    </label>
+
+    <label>ID
+      <input id="id" type="text" value="1">
+    </label>
+
+    <label>Currency
+      <input id="currency" type="text" value="USD" maxlength="3">
+    </label>
+
+    <button type="submit">Send</button>
+  </form>
+
+  <p>Request: <code id="request">-</code></p>
+  <p>Status: <strong id="status">-</strong></p>
+  <pre id="result">Nothing yet.</pre>
+  </section>
+
+  <section class="card">
+  <img src="city.svg" alt="" class="skyline">
+  <h2>Cities in the database</h2>
+  <table id="cities">
+    <thead><tr><th>ID</th><th>Name</th><th>Currency</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
