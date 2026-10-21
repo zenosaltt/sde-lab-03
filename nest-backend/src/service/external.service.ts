@@ -138,7 +138,7 @@ export class ExternalService implements OnModuleDestroy {
   // The objective is to implement rate('EUR', 'USD'), which, for example,
   // returns the value of EUR in USD. This rate is later used as a multiplier
   // to get the total price in USD.
-  async rate(from: string, to: string): Promise<number> {
+  async rateExample(from: string, to: string): Promise<number> {
     // 1. Partire da GET /rate/EUR/USD della nostra API: il controller ha già
     //    normalizzato i codici in maiuscolo e verificato le tre lettere.
     //    Questo controllo non garantisce che Frankfurter supporti la valuta.
@@ -174,18 +174,19 @@ export class ExternalService implements OnModuleDestroy {
     throw new Error('Not implemented');
   }
 
-  // async rate(from: string, to: string): Promise<number> {
-  //   // Set the URL with requested parameters.
-  //   const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
-  //
-  //   // Wait for GET and consequent JSON parsing
-  //   const data = await json(url) as { rate?: number };
-  //
-  //   // Sanity check
-  //   if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) {
-  //     throw new Error('Invalid rate response');
-  //   }
-  //
-  //   return data.rate;
-  // }
+  // SOLUTION
+  async rate(from: string, to: string): Promise<number> {
+    // Set the URL with requested parameters.
+    const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
+  
+    // Wait for GET and consequent JSON parsing
+    const data = await json(url) as { rate?: number };
+  
+    // Sanity check
+    if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) {
+      throw new Error('Invalid rate response');
+    }
+  
+    return data.rate;
+  }
 }
