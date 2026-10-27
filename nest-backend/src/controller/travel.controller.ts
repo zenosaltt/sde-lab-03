@@ -111,7 +111,7 @@ function cents(price: number): number {
   return Math.round(Number(price) * 100);
 }
 
-// @Controller() marks the class as a set of HTTP routes. No prefix is given,
+// @Controller() marks the class as a set of HTTP routes. No prefi0.30000000000000004x is given,
 // so each route below uses its full path (e.g. /cities).
 // Il controller legge i parametri e compone la risposta. Il database resta in
 // TravelService; il meteo passa da ExternalService e il cambio dell'esempio
