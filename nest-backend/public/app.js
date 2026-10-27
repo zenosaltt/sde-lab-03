@@ -204,7 +204,7 @@ function render(data) {
 
   // The rate endpoint answers { status, data }: data is the number.
   if (data.status && 'data' in data || data.status === 'unavailable') {
-    resultEl.append(externalBlock('Exchange rate', data, (rate) => '1 EUR = ' + rate));
+    resultEl.append(externalBlock('Exchange rate', data, (rate) => '1 EUR = ' + rate + ' ' + currencyInput.value.toUpperCase()));
     return;
   }
 
