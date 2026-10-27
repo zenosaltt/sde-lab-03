@@ -35,7 +35,7 @@
         <optgroup label="Exercises">
           <option value="/flights/{id}/weather" data-todo>Ex. 1: GET /flights/:id/weather</option>
           <option value="/hotels/{id}/price?currency={currency}" data-todo>Ex. 2: GET /hotels/:id/price</option>
-          <option value="/cities/{id}/cheapest-trip" data-todo>Ex. 3: GET /cities/:id/cheapest-trip</option>
+          <option value="/cities/{id}/cheapest-trip?currency={currency}" data-todo>Ex. 3: GET /cities/:id/cheapest-trip</option>
         </optgroup>
         <optgroup label="Assignment">
           <option value="/flights/{id}/price?currency={currency}" data-todo>GET /flights/:id/price</option>
@@ -86,7 +86,7 @@
   <details>
     <summary>Hotels in the database</summary>
   <table id="hotels">
-    <thead><tr><th>ID</th><th>Name</th><th>City</th><th>Price per night (EUR)</th></tr></thead>
+    <thead><tr><th>ID</th><th>Name</th><th>City</th><th>Price per night</th></tr></thead>
     <tbody></tbody>
   </table>
   </details>

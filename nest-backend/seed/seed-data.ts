@@ -1,4 +1,5 @@
-// Coordinate reali; compagnie, hotel, prezzi e orari sono dati di esercizio.
+// Real coordinates; airlines, hotels, prices and times are demo data.
+// Flight prices are in EUR (priceEur); hotel prices are in the currency of their city.
 export const cities = [
   { name: 'Rome', latitude: 41.9028, longitude: 12.4964, currency: 'EUR' },
   { name: 'London', latitude: 51.5074, longitude: -0.1278, currency: 'GBP' },

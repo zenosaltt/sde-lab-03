@@ -83,18 +83,31 @@ function flightCard(flight) {
   return card;
 }
 
-function hotelCard(hotel) {
+// The price of a hotel is in the currency of its city (hotel.city.currency).
+// "converted" is { currency, price } when the answer also carries the price in the
+// requested currency (e.g. /hotels/1/price?currency=USD): the card then shows that
+// price, with the original one below.
+function hotelCard(hotel, converted) {
+  const original = hotel.pricePerNight.toFixed(2) + ' ' + hotel.city.currency + ' / night';
   const card = el('div', 'item');
   card.append(el('h3', '', hotel.name));
   card.append(el('p', 'muted', hotel.city.name));
-  card.append(el('p', 'price', euro(hotel.pricePerNight) + ' / night'));
+  if (converted && typeof converted.price === 'number') {
+    card.append(el('p', 'price', converted.price.toFixed(2) + ' ' + converted.currency + ' / night'));
+    if (converted.currency !== hotel.city.currency) {
+      card.append(el('p', 'muted', 'Original: ' + original));
+    }
+  } else {
+    card.append(el('p', 'price', original));
+    if (converted) card.append(el('p', 'error', 'Converted price unavailable'));
+  }
   return card;
 }
 
 // Chooses the right card by looking at the fields of the object.
 function itemCard(item) {
   if (item.departureCity) return flightCard(item);
-  if (item.pricePerNight !== undefined && item.city) return hotelCard(item);
+  if (item.name && item.pricePerNight !== undefined && item.city) return hotelCard(item);
   if (item.latitude !== undefined) return cityCard(item);
   return null;
 }
@@ -123,20 +136,39 @@ function renderObject(data) {
   const wrap = el('div', 'sections');
   const facts = el('dl', 'facts');
 
+  // The hotel card shows the converted price, so these are not repeated below.
+  const hotelPriceInCard = data.hotel && data.currency && 'pricePerNight' in data;
+
   for (const [key, value] of Object.entries(data)) {
+    if (hotelPriceInCard && (key === 'pricePerNight' || key === 'originalPricePerNight' || key === 'originalCurrency')) {
+      continue;
+    }
+    // The currency is already written next to every price: no box for it.
+    if (key === 'currency') continue;
     if (value === null || typeof value !== 'object') {
       // price, currency, nights, totals ... shown as "label: value"
-      const text = typeof value === 'number' && /price|total/i.test(key) ? value.toFixed(2) : String(value);
+      let text = String(value);
+      if (typeof value === 'number' && /price|total/i.test(key)) {
+        text = value.toFixed(2) + ' ' + (data.currency ?? '');
+      }
+      if (value === null && /price|total/i.test(key)) text = 'unavailable';
       const fact = el('div', 'fact');
       fact.append(el('dt', '', prettyLabel(key)), el('dd', '', text));
       facts.append(fact);
     } else if (key === 'weather') {
       wrap.append(externalBlock('Weather', value, describeWeather));
-    } else if (key === 'exchange') {
-      wrap.append(externalBlock('Exchange rate', value, (rate) => '1 EUR = ' + rate));
+    } else if (key.toLowerCase().endsWith('exchange')) {
+      // Where the rate starts from: the hotel currency, EUR for flights.
+      const from = key === 'flightExchange' ? 'EUR'
+        : key === 'hotelExchange' ? data.city?.currency
+        : data.originalCurrency ?? 'EUR';
+      wrap.append(externalBlock(prettyLabel(key), value, (rate) => '1 ' + from + ' = ' + rate + ' ' + (data.currency ?? '')));
     } else if (itemCard(value)) {
       const section = el('div', 'section');
-      section.append(el('h4', '', prettyLabel(key)), itemCard(value));
+      const card = key === 'hotel' && hotelPriceInCard
+        ? hotelCard(value, { currency: data.currency, price: data.pricePerNight })
+        : itemCard(value);
+      section.append(el('h4', '', prettyLabel(key)), card);
       wrap.append(section);
     }
   }

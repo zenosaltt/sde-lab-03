@@ -160,7 +160,7 @@ export class TravelService {
     return this.hotels.save(this.hotels.create({
       city,
       name: label(body.name, 'name'),
-      pricePerNight: number(body.pricePerNight, 'pricePerNight', 0, 99999999.99), // EUR per night
+      pricePerNight: number(body.pricePerNight, 'pricePerNight', 0, 99999999.99), // per night, in the currency of the city of the hotel
     }));
   }
 

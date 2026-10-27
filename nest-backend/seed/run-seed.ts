@@ -1,8 +1,8 @@
 import type { TravelService } from '../src/service/travel.service.ts';
 import { cities, getFlights, hotels } from './seed-data.ts';
 
-// Il seed aggiunge solo i record mancanti; non aggiorna o cancella dati esistenti.
-// Eseguire un solo seed alla volta, durante la preparazione del laboratorio.
+// The seed only adds the missing records; it never updates or deletes existing data.
+// Run one seed at a time, while preparing the lab.
 export async function runSeed(travel: TravelService) {
   await travel.clearDB();
   const cityIds = new Map<string, number>();

@@ -62,40 +62,44 @@ export class ExternalService implements OnModuleDestroy {
   }
 
 
-  // Senza date restituisce il meteo corrente; con date quello dell'ora UTC
-  // che contiene l'istante richiesto (es. 17:10Z -> previsione delle 17:00Z).
-  // Una data fuori dalla copertura di Open-Meteo genera un errore: il controller
-  // lo converte in unavailable, senza ripiegare sul meteo corrente.
+  // Returns the weather for some coordinates. Without a date it uses the
+  // current time; with a date it returns the weather of the UTC hour that
+  // contains that instant (e.g. 17:10Z -> forecast of 17:00Z).
+  // A date outside the coverage of Open-Meteo throws an error: the controller
+  // turns it into "unavailable", it does not fall back to the current weather.
   async weather(latitude: number, longitude: number, date?: Date): Promise<Weather> {
 
     if (date == undefined) date = new Date();
 
-    // Validare la data prima della cache e della rete. Date è un oggetto JavaScript,
-    // non una stringa: i voli caricati da TypeORM hanno già arrivalTime di tipo Date.
+    // Validate the date before using the cache or the network. It is a JavaScript
+    // Date object, not a string: flights loaded by TypeORM already have an
+    // arrivalTime of type Date.
     if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
       throw new Error('Invalid weather date');
     }
     const hour = Math.floor(date.getTime() / 3600000) * 3600;
-    // Conserviamo la chiave originale per il meteo corrente; per una previsione
-    // aggiungiamo l'ora richiesta, così date diverse non condividono lo stesso dato.
+    // The key contains the coordinates (rounded to 2 decimals) and the requested
+    // hour, so different dates never share the same cached value.
     const cacheKey = `weather:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${hour}`;
 
-    // 1. La cache è facoltativa: un errore Redis non impedisce la chiamata HTTP.
+    // 1. The cache is optional: a Redis error does not prevent the HTTP call.
     try {
       const cached = await this.redis.get(cacheKey);
       if (cached) return JSON.parse(cached) as Weather;
     } catch {}
 
-    // 2. Riutilizziamo json(url): GET, timeout di 3 secondi e controllo HTTP.
-    // Il base URL opzionale permette di verificare il servizio con provider simulati.
+    // 2. Reuse json(url): GET, 3-second timeout and HTTP status check.
+    // The optional base URL (TRAVEL_WEATHER_BASE_URL) allows testing the
+    // service against a simulated provider.
     const baseUrl = process.env.TRAVEL_WEATHER_BASE_URL ?? 'https://api.open-meteo.com';
     const url = new URL(`${baseUrl}/v1/forecast`);
     url.searchParams.set('latitude', String(latitude));
     url.searchParams.set('longitude', String(longitude));
     let weather: Weather;
 
-    // Chiediamo le ore della data UTC di arrivo. Unix time evita interpretazioni
-    // nel fuso locale del server; tutti gli array usano lo stesso indice orario.
+    // Ask for all the hours of the UTC day of the requested time. Unix time avoids
+    // any interpretation in the local time zone of the server; all the arrays
+    // use the same hourly index.
     const day = new Date(hour * 1000).toISOString().slice(0, 10);
     url.searchParams.set('hourly', 'temperature_2m,weather_code');
     url.searchParams.set('temperature_unit', 'celsius');
@@ -126,51 +130,50 @@ export class ExternalService implements OnModuleDestroy {
     };
     
 
-    // 3. Memorizziamo lo stesso oggetto restituito al chiamante. La scadenza resta
-    // di 10 minuti e un errore di scrittura Redis non altera la risposta HTTP.
+    // 3. Store the same object that is returned to the caller. It expires after
+    // 10 minutes and a Redis write error does not change the HTTP answer.
     try {
       await this.redis.set(cacheKey, JSON.stringify(weather), { EX: WEATHER_CACHE_TTL_SECONDS });
     } catch {}
     return weather;
   }
 
-  // ESEMPIO 1 guidato— Query the external REST service Frankfurter.
-  // The objective is to implement rate('EUR', 'USD'), which, for example,
-  // returns the value of EUR in USD. This rate is later used as a multiplier
-  // to get the total price in USD.
+  // GUIDED EXAMPLE 1: query the external REST service Frankfurter.
+  // The goal is to implement rate('EUR', 'USD'), which returns the value of
+  // 1 EUR in USD. The rate is later used as a multiplier to convert a price.
   async rateExample(from: string, to: string): Promise<number> {
-    // 1. Partire da GET /rate/EUR/USD della nostra API: il controller ha già
-    //    normalizzato i codici in maiuscolo e verificato le tre lettere.
-    //    Questo controllo non garantisce che Frankfurter supporti la valuta.
+    // 1. Start from GET /rate/EUR/USD of our own API: the controller has already
+    //    converted the codes to upper case and checked the three letters.
+    //    This does not guarantee that Frankfurter supports the currency.
 
-    // 2. Costruire un oggetto URL per la risorsa esterna:
+    // 2. Build a URL object for the external resource:
     //    https://api.frankfurter.dev/v2/rate/{from}/{to}
-    //    Sostituire i segnaposto con i parametri. Non serve una chiave API.
-    //    Distinguere la rotta locale dalla richiesta HTTP verso Frankfurter.
+    //    Replace the placeholders with the parameters. No API key is needed.
+    //    Do not confuse the local route with the HTTP request to Frankfurter.
 
-    // 3. Chiamare l'helper json(url) con await. Risalire alla sua definizione:
-    //    esegue una GET con fetch, interrompe l'attesa dopo 3 secondi,
-    //    controlla response.ok e deserializza il corpo JSON.
-    //    async/await permette di attendere la rete senza bloccare Node.js.
+    // 3. Call the json(url) helper with await. Look at its definition: it
+    //    performs a GET with fetch, stops waiting after 3 seconds, checks
+    //    response.ok and parses the JSON body.
+    //    async/await lets us wait for the network without blocking Node.js.
 
-    // 4. Leggere la proprietà rate dalla risposta. L'helper restituisce unknown:
-    //    descrivere la forma attesa con { rate?: number }, ricordando che
-    //    un'asserzione TypeScript non valida i dati ricevuti a runtime.
-    //    Verificare che rate sia un number e che Number.isFinite sia true;
-    //    altrimenti lanciare un errore, senza restituire un tasso inventato.
+    // 4. Read the rate property of the answer. The helper returns unknown:
+    //    describe the expected shape with { rate?: number }, remembering that
+    //    a TypeScript assertion does not validate data received at runtime.
+    //    Check that rate is a number and that Number.isFinite is true;
+    //    otherwise throw an error, never return an invented rate.
 
-    // 5. Restituire solo il tasso numerico, non l'intera risposta esterna.
-    //    Lasciare propagare gli errori: available(...) nel controller li
-    //    trasforma in { status: 'unavailable' }, mantenendo HTTP 200.
+    // 5. Return only the numeric rate, not the whole external answer.
+    //    Let errors propagate: available(...) in the controller turns them
+    //    into { status: 'unavailable' }, keeping HTTP 200.
 
-    // 6. Dopo l'implementazione, provare GET /rate/EUR/USD: ci aspettiamo
-    //    { status: 'ok', data: <numero> }, il cui valore varia nel tempo.
-    //    Con /rate/EUR/US ci aspettiamo 400 dalla validazione locale;
-    //    con /rate/EUR/ZZZ ci aspettiamo 'unavailable' per l'errore esterno.
+    // 6. After the implementation, try GET /rate/EUR/USD: we expect
+    //    { status: 'ok', data: <number> }, whose value changes over time.
+    //    With /rate/EUR/US we expect 400 from the local validation;
+    //    with /rate/EUR/ZZZ we expect 'unavailable' because of the external error.
 
-    // TODO: implementare insieme i passi 2–5 e rimuovere questo placeholder.
-    // Nel frattempo il progetto resta compilabile e il controller segnala
-    // il cambio come indisponibile, anche nella risposta travel-options.
+    // TODO: implement steps 2-5 together and remove this placeholder.
+    // Meanwhile the project still compiles and the endpoints that use the
+    // exchange rate report it as unavailable.
     throw new Error('Not implemented');
   }
 
