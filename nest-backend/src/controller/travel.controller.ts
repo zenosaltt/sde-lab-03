@@ -96,10 +96,15 @@ async function externalJson(url: URL): Promise<unknown> {
 // Il tasso è quello più recente pubblicato, non un prezzo di prenotazione futuro.
 async function rateFromEur(currency: string): Promise<number> {
   if (currency === DEFAULT_CURRENCY) return 1;
-  const baseUrl = process.env.TRAVEL_EXCHANGE_BASE_URL ?? "https://api.frankfurter.dev";
+  const baseUrl =
+    process.env.TRAVEL_EXCHANGE_BASE_URL ?? "https://api.frankfurter.dev";
   const url = new URL(`${baseUrl}/v2/rate/EUR/${currency}`);
-  const data = await externalJson(url) as { rate?: unknown } | null;
-  if (typeof data?.rate !== "number" || !Number.isFinite(data.rate) || data.rate <= 0) {
+  const data = (await externalJson(url)) as { rate?: unknown } | null;
+  if (
+    typeof data?.rate !== "number" ||
+    !Number.isFinite(data.rate) ||
+    data.rate <= 0
+  ) {
     throw new Error("Invalid exchange rate response");
   }
   return data.rate;
@@ -199,11 +204,13 @@ export class TravelController {
     //    Senza data lo stesso metodo continua a restituire il meteo corrente.
     // 3. available intercetta timeout, risposte invalide e date fuori previsione:
     //    il volo resta consultabile anche quando manca il meteo.
-    const weather = await available(this.external.weather(
-      flight.arrivalCity.latitude,
-      flight.arrivalCity.longitude,
-      flight.arrivalTime,
-    ));
+    const weather = await available(
+      this.external.weather(
+        flight.arrivalCity.latitude,
+        flight.arrivalCity.longitude,
+        flight.arrivalTime,
+      ),
+    );
 
     // 4. I dati interni restano distinti dal risultato della composizione esterna.
     //    weather.data.time indica l'inizio dell'ora UTC che contiene l'arrivo:
@@ -274,12 +281,15 @@ export class TravelController {
     const flight = flights.reduce((best, candidate) => {
       const difference = cents(candidate.priceEur) - cents(best.priceEur);
       return difference < 0 || (difference === 0 && candidate.id < best.id)
-        ? candidate : best;
+        ? candidate
+        : best;
     });
     const hotel = hotels.reduce((best, candidate) => {
-      const difference = cents(candidate.pricePerNight) - cents(best.pricePerNight);
+      const difference =
+        cents(candidate.pricePerNight) - cents(best.pricePerNight);
       return difference < 0 || (difference === 0 && candidate.id < best.id)
-        ? candidate : best;
+        ? candidate
+        : best;
     });
 
     return {
@@ -288,7 +298,13 @@ export class TravelController {
       hotel,
       nights: 1,
       currency: DEFAULT_CURRENCY,
-      totalPriceEur: (cents(flight.priceEur) + cents(hotel.pricePerNight)) / 100,
+      totalPriceEur:
+        (cents(flight.priceEur) + cents(hotel.pricePerNight)) / 100,
     };
   }
+  
+  //@Get("flights/:id/price")
+  //async getFlightPrice( @Param("id", ParseIntPipe) id: number,@Query("currency") requestedCurrency?: string) {
+    
+  //}
 }

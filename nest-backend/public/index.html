@@ -12,7 +12,7 @@
       <img src="plane.svg" alt="" class="plane">
       <div>
         <h1>Travel API lab</h1>
-        <p>Pick an endpoint, fill in the values and press Send.</p>
+        <p>Search flights, hotels and cities.</p>
       </div>
     </div>
     <img src="sun.svg" alt="" class="sun">
@@ -21,7 +21,7 @@
   <main>
   <section class="card">
   <form id="form">
-    <label>Endpoint
+    <label>What do you want to see?
       <select id="endpoint">
         <optgroup label="Provided">
           <option value="/cities">GET /cities</option>
@@ -31,13 +31,11 @@
           <option value="/hotels">GET /hotels</option>
           <option value="/hotels/{id}">GET /hotels/:id</option>
           <option value="/rate/EUR/{currency}">GET /rate/EUR/:currency</option>
-          <option value="/cities/{id}/travel-options?currency={currency}">GET /cities/:id/travel-options</option>
         </optgroup>
         <optgroup label="Exercises">
-          <option value="/cities/{id}/weather" data-todo>Ex. 1: GET /cities/:id/weather</option>
-          <option value="/cities/{id}/overview" data-todo>Ex. 2: GET /cities/:id/overview</option>
-          <option value="/flights/{id}/weather" data-todo>Ex. 3: GET /flights/:id/weather</option>
-          <option value="/cities/{id}/hotels/cheapest" data-todo>Ex. 4: GET /cities/:id/hotels/cheapest</option>
+          <option value="/flights/{id}/weather" data-todo>Ex. 1: GET /flights/:id/weather</option>
+          <option value="/hotels/{id}/price?currency={currency}" data-todo>Ex. 2: GET /hotels/:id/price</option>
+          <option value="/cities/{id}/cheapest-trip" data-todo>Ex. 3: GET /cities/:id/cheapest-trip</option>
         </optgroup>
         <optgroup label="Assignment">
           <option value="/flights/{id}/price?currency={currency}" data-todo>GET /flights/:id/price</option>
@@ -53,12 +51,15 @@
       <input id="currency" type="text" value="USD" maxlength="3">
     </label>
 
-    <button type="submit">Send</button>
+    <button type="submit">Show</button>
   </form>
 
-  <p>Request: <code id="request">-</code></p>
-  <p>Status: <strong id="status">-</strong></p>
-  <pre id="result">Nothing yet.</pre>
+  <p class="request-line"><span id="status" class="badge">-</span> <code id="request">Choose something and press Show.</code></p>
+  <div id="result"></div>
+  <details class="raw">
+    <summary>Raw JSON</summary>
+    <pre id="raw"></pre>
+  </details>
   </section>
 
   <section class="card">

@@ -64,7 +64,7 @@ Quando l'ambiente è avviato, l'API risponde su `http://localhost:3000`. Si può
 **Terminale.** Esempio di richiesta `GET`:
 
 ```bash
-curl -sS 'http://localhost:3000/cities/3/travel-options?currency=USD'
+curl -sS 'http://localhost:3000/hotels/1/price?currency=USD'
 ```
 
 Per le richieste `POST` e per la sequenza completa di inserimento vedere [Inserimento manuale facoltativo](#inserimento-manuale-facoltativo).
@@ -121,7 +121,7 @@ Si possono eseguire le stesse richieste con Postman. L'ultima risposta contiene 
 
 In `nest-backend/src/service/external.service.ts`, `rate(from, to)` restituisce il tasso di cambio dalla valuta di origine a quella di destinazione. L'helper `json` gestisce timeout e stato HTTP; il servizio valida e restituisce il solo tasso numerico, e il controller usa `available` per gestire gli errori.
 
-`GET /rate/:from/:to` espone il cambio tra due valute, per esempio `/rate/EUR/USD`. `travel-options` usa `rate("EUR", currency)` per convertire i prezzi originali in EUR nella valuta richiesta. La funzione chiama Frankfurter anche quando le due valute coincidono; un errore esterno può quindi rendere indisponibile anche il cambio EUR→EUR.
+`GET /rate/:from/:to` espone il cambio tra due valute, per esempio `/rate/EUR/USD`. `GET /hotels/:id/price` converte il prezzo originale in EUR nella valuta richiesta, partendo da un tasso EUR→valuta. La funzione chiama Frankfurter anche quando le due valute coincidono; un errore esterno può quindi rendere indisponibile anche il cambio EUR→EUR.
 
 Se Open-Meteo o Frankfurter non rispondono entro 3 secondi o restituiscono un errore, la risposta rimane `200` con `status: "unavailable"` nella rispettiva sezione. Se manca il cambio, gli importi convertiti sono `null`; i prezzi EUR rimangono disponibili. I dati locali, invece, devono essere validi: una città inesistente produce `404`. Il timeout riguarda ciascuna chiamata esterna, avviata in parallelo.
 
@@ -133,17 +133,22 @@ Se Open-Meteo o Frankfurter non rispondono entro 3 secondi o restituiscono un er
 | 10–30 | Schema del dominio; servizio interno ed esterno; composizione, timeout e risposta parziale |
 | 30–55 | Avvio dell'ambiente già popolato ed esplorazione di città, voli e hotel |
 | 55–65 | Pausa |
-| 65–95 | Esplorazione di `travel-options`; cambiare valuta e confrontare prezzi e tasso |
+| 65–95 | Esplorazione di `/hotels/:id/price`; cambiare valuta e confrontare prezzo e tasso |
 | 95–115 | Esercizi sugli errori e breve discussione delle scelte di progetto |
 | 115–120 | Consegna tramite form e riepilogo |
 
 ## Esercizi e consegna
 
-1. Creare una nuova città con coordinate valide e almeno un hotel; richiedere le sue opzioni di viaggio in una valuta diversa da EUR. Spiegare perché il campo `pricePerNightEur` non cambia.
-2. Provare un `cityId` inesistente nella creazione di un hotel e un valore di latitudine fuori intervallo. Annotare i codici HTTP e il motivo della differenza rispetto a un servizio esterno indisponibile.
-3. **Facoltativo:** modificare temporaneamente l'URL di uno dei servizi in `external.service.ts` e ripetere la richiesta aggregata. Individuare `status: "unavailable"` e i dati ancora presenti. Ripristinare poi l'URL.
+Le richieste si provano dall'interfaccia web (gli endpoint ancora da scrivere mostrano *Not implemented yet*). Le istruzioni dettagliate di ogni esercizio sono nei commenti di `travel.controller.ts`.
 
-Consegnare nel form indicato dai docenti **uno screenshot o il JSON** della risposta di `GET /cities/:id/travel-options?currency=USD` con città e hotel creati, più due righe che spiegano un caso di errore osservato. Non inserire segreti o file `.env` nella consegna.
+1. **Esercizio 1, guidato:** `GET /flights/:id/weather`. Volo (dato interno) e meteo della città di arrivo (servizio esterno), in sequenza.
+2. **Esercizio 2:** `GET /hotels/:id/price?currency=USD`. Hotel (dato interno) e tasso di cambio Frankfurter; il prezzo originale in EUR non cambia.
+3. **Compito:** `GET /flights/:id/price?currency=USD`. Volo (dato interno) e tasso di cambio Frankfurter: prezzo convertito dalla valuta EUR. Le istruzioni sono in [ASSIGNMENT.md](ASSIGNMENT.md).
+4. **Facoltativo:** modificare temporaneamente l'URL di uno dei servizi in `external.service.ts` e ripetere la richiesta dell'esercizio 2. Individuare `status: "unavailable"` e i dati ancora presenti. Ripristinare poi l'URL.
+
+Annotare inoltre i codici HTTP ottenuti con un ID inesistente (`404`) e con un ID non valido (`400`), e il motivo della differenza rispetto a un servizio esterno indisponibile.
+
+Consegnare nel form indicato dai docenti **uno screenshot o il JSON** della risposta di `GET /flights/:id/price?currency=USD`, più due righe che spiegano un caso di errore osservato. Non inserire segreti o file `.env` nella consegna.
 
 ## Limiti intenzionali
 

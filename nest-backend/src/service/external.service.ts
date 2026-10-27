@@ -134,7 +134,7 @@ export class ExternalService implements OnModuleDestroy {
     return weather;
   }
 
-  // ESEMPIO 1 — Query the external REST service Frankfurter.
+  // ESEMPIO 1 guidato— Query the external REST service Frankfurter.
   // The objective is to implement rate('EUR', 'USD'), which, for example,
   // returns the value of EUR in USD. This rate is later used as a multiplier
   // to get the total price in USD.

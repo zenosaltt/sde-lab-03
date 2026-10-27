@@ -113,8 +113,82 @@ pre {
   border-radius: 4px;
   padding: 1rem;
   overflow: auto;
-  max-height: 28rem;
+  max-height: 24rem;
 }
+
+.request-line { color: #52606d; }
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.6rem;
+  border-radius: 10px;
+  background: var(--border);
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.badge.ok { background: var(--green); color: white; }
+.badge.error { background: var(--red); color: white; }
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.8rem;
+}
+
+/* Combined answers: two equal columns; every section is a small title + a card. */
+.sections {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.section .item { flex: 1; }
+
+.item {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--orange);
+  border-radius: 4px;
+  padding: 0.7rem 0.9rem;
+}
+
+.item h3 { margin: 0 0 0.3rem; font-size: 1.05rem; color: var(--blue-dark); }
+.item p { margin: 0.2rem 0; font-size: 0.9rem; }
+.section h4 { margin: 0 0 0.3rem; font-size: 0.8rem; text-transform: uppercase; color: #52606d; }
+.muted { color: #52606d; }
+.price { font-weight: bold; font-size: 1.1rem; color: var(--blue); }
+.item p.big { font-size: 1.1rem; font-weight: bold; color: var(--blue); }
+
+/* Summary row below the cards: one box per value (nights, currency, total ...). */
+.facts {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.fact {
+  flex: 1 1 120px;
+  background: var(--sky);
+  border-radius: 4px;
+  padding: 0.5rem 0.8rem;
+}
+
+.fact dt { font-size: 0.75rem; text-transform: uppercase; color: #52606d; }
+.fact dd { margin: 0.1rem 0 0; font-size: 1.15rem; font-weight: bold; color: var(--blue-dark); }
+
+@media (max-width: 600px) {
+  .sections { grid-template-columns: 1fr; }
+}
+
+.raw { margin-top: 1rem; }
+.raw summary { font-size: 0.9rem; font-weight: normal; }
 
 table {
   border-collapse: collapse;
