@@ -1,7 +1,7 @@
 import type { TravelService } from '../src/service/travel.service.ts';
 import { cities, getFlights, hotels } from './seed-data.ts';
 
-// The seed only adds the missing records; it never updates or deletes existing data.
+// The seed deletes the existing data (clearDB) and creates it again from scratch.
 // Run one seed at a time, while preparing the lab.
 export async function runSeed(travel: TravelService) {
   await travel.clearDB();

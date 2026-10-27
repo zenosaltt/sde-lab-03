@@ -1,155 +1,167 @@
-# Laboratorio REST avanzato: opzioni di viaggio
+# Advanced REST lab
 
-Bozza didattica per un laboratorio di **2 ore**. Una API NestJS combina tre risorse locali in MySQL (città, voli, hotel) con due servizi esterni: [Open-Meteo](https://open-meteo.com/en/docs) per il meteo corrente e [Frankfurter](https://frankfurter.dev/) per i tassi di cambio. Non implementa prenotazioni o pagamenti.
+Teaching draft for a **2-hour** lab. A NestJS API combines three local resources stored in MySQL (cities, flights, hotels) with two external services: [Open-Meteo](https://open-meteo.com/en/docs) for the weather and [Frankfurter](https://frankfurter.dev/) for exchange rates.
 
-## Obiettivi
-
-Alla fine del laboratorio, lo studente sa:
-
-1. distinguere dati gestiti dall'applicazione da dati ottenuti da servizi esterni;
-2. leggere relazioni tra risorse REST e comporre una risposta utile al client;
-3. interpretare `400`, `404`, `201` e una risposta parziale con `200`;
-4. spiegare perché una chiamata esterna ha un timeout e come gestire la sua indisponibilità.
-
-## Struttura
+## Structure
 
 ```text
-docker-compose.yml            backend, MySQL e Redis
-nest-backend/Dockerfile        ambiente Node.js per il laboratorio
-nest-backend/src/travel/       entità, controller e servizi del dominio
-nest-backend/src/app.module.ts configurazione DB e moduli NestJS
-nest-backend/test/             test API
+sde-lab-03/
+├── .env                              lab credentials
+├── README.md                         lab description
+├── ASSIGNMENT.md                     assignment for the students
+├── ASSIGNMENT_SOLUTION.md            teacher solution (do not distribute)
+├── docker-compose.yml                backend, MySQL and Redis
+├── start-lab.sh                      starts Docker and seeds the database
+└── nest-backend/
+    ├── Dockerfile                    Node.js environment for the lab
+    ├── package.json
+    ├── tsconfig.json
+    ├── public/                       web interface to try the APIs
+    │   ├── index.html
+    │   ├── style.css
+    │   ├── app.js
+    │   ├── plane.svg
+    │   └── sun.svg
+    ├── seed/                         demo data and seeding script
+    │   ├── seed.ts                   entry point (npm run seed)
+    │   ├── run-seed.ts               clears the database and inserts the data
+    │   └── seed-data.ts              cities, flights and hotels
+    └── src/
+        ├── main.ts                   starts the app and serves public/
+        ├── app.module.ts             database and modules configuration
+        ├── controller/
+        │   └── travel.controller.ts  HTTP routes (the exercises are written here)
+        ├── service/
+        │   ├── travel.service.ts     database access (TypeORM)
+        │   └── external.service.ts   Open-Meteo, Frankfurter and the Redis cache
+        ├── model/
+        │   ├── city.entity.ts
+        │   ├── flight.entity.ts
+        │   └── hotel.entity.ts
+        └── module/
+            └── travel.module.ts      NestJS module
 ```
 
-Il database contiene solo `City`, `Flight` e `Hotel`. Voli e hotel fanno riferimento a città esistenti. Tutti i prezzi locali sono in **EUR**; il valore in un'altra valuta è calcolato solo nella risposta aggregata, senza modificare il database. L'API non ha autenticazione e i dati sono di esercizio.
+The database contains only `City`, `Flight` and `Hotel`. Flights and hotels refer to existing cities. **The price of a flight is in EUR** (`priceEur`); **the price of a hotel is in the currency of its city** (`city.currency`: London in GBP, Tokyo in JPY, ...). Values in another currency are computed only in the aggregated responses, without changing the database. The weather is cached in Redis for 10 minutes. The API has no authentication and the data is for practice only.
 
-## Preparazione
+## Setup
 
-Servono solo Docker e Docker Compose. Node.js e npm sono inclusi nel container del backend. Il progetto può essere eseguito anche in una VM Linux con VirtualBox.
+You only need Docker and Docker Compose. Node.js and npm are included in the backend container.
 
-Dalla radice del repository, se `.env` non è presente, copiarlo da `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-Avviare l'ambiente e popolare il database:
+The `.env` file with the lab credentials is included in the repository. From the project root, start the environment and seed the database:
 
 ```bash
 ./start-lab.sh
 ```
 
-Lo script esegue questi comandi, utilizzabili anche separatamente:
+The script runs these commands, which can also be used separately:
 
 ```bash
+docker compose down -v
 docker compose up -d --build --renew-anon-volumes
 docker compose exec backend npm run seed
 docker compose logs -f backend
 ```
 
-Il backend attende che MySQL sia pronto. Nella rete Docker usa `mysql` e `redis` come host, indipendentemente dagli host locali in `.env`. Le tabelle sono create automaticamente da TypeORM (`synchronize: true`), utile per il laboratorio.
+The backend waits for MySQL to be ready. Inside the Docker network it uses `mysql` and `redis` as hosts, regardless of the local hosts in `.env`. The tables are created automatically by TypeORM (`synchronize: true`), which is convenient for the lab.
 
-### Provare le API
+### Trying the APIs
 
-Quando l'ambiente è avviato, l'API risponde su `http://localhost:3000`. Si può provare in due modi, equivalenti tra loro:
+Once the environment is running, the API answers on `http://localhost:3000`. There are two ways to try it:
 
-| | Interfaccia web | Terminale |
+| | Web interface | Terminal |
 | --- | --- | --- |
-| **Come si usa** | aprire [http://localhost:3000](http://localhost:3000) nel browser | eseguire richieste `curl` (o importarle in Postman) |
-| **Adatta a** | esplorare i dati ed eseguire richieste `GET` con pochi clic | creare dati con `POST` e controllare l'intera risposta |
-| **Cosa mostra** | codice HTTP e JSON della risposta, più le tabelle di città, voli e hotel presenti nel database | l'output grezzo della risposta, da copiare nella consegna |
+| **How to use it** | open [http://localhost:3000](http://localhost:3000) in the browser | run `curl` requests (or import them into Postman) |
+| **Good for** | exploring the data with a few clicks | checking the whole response |
+| **What it shows** | HTTP status, the response as cards (flights, hotels, weather, exchange rate) with the full JSON on demand, plus tables of the cities, flights and hotels in the database | raw output of the response |
 
-**Interfaccia web.** Scegliere l'endpoint dal menu, compilare i campi che compaiono (ID, valuta) e premere **Send**. Gli endpoint degli esercizi e del compito sono nel menu: finché il metodo non è stato scritto, la pagina mostra *Not implemented yet*. Le tabelle in fondo alla pagina (da aprire con un clic) mostrano gli ID esistenti. La pagina permette solo richieste `GET`: per creare dati usare il terminale.
+**Web interface.** Choose the endpoint from the menu, fill in the fields that appear (ID, currency) and press **Show**. The endpoints of the exercises and of the assignment are in the menu: until the method has been written, the page shows a dedicated message. The tables at the bottom of the page (click to open them) show the existing IDs.
 
-**Terminale.** Esempio di richiesta `GET`:
+**Terminal.** Example request:
 
 ```bash
 curl -sS 'http://localhost:3000/hotels/1/price?currency=USD'
 ```
 
-Per le richieste `POST` e per la sequenza completa di inserimento vedere [Inserimento manuale facoltativo](#inserimento-manuale-facoltativo).
+### Changing the code during the exercises
 
-### Modificare il codice durante gli esercizi
+The `nest-backend` folder is mounted in `/app` through a **bind mount**: changing the files with your own editor updates them immediately in the container too, and vice versa. `npm run start:dev` recompiles and restarts the backend when the sources change. Polling lets it detect changes even on the shared file systems of Docker Desktop.
 
-La cartella `nest-backend` è montata in `/app` tramite un **bind mount**: modificare i file con il proprio editor li aggiorna immediatamente anche nel container, e viceversa. `npm run start:dev` ricompila e riavvia il backend quando cambiano i sorgenti. Il polling permette di rilevare le modifiche anche sui filesystem condivisi di Docker Desktop.
+`node_modules` uses a separate volume, so the Linux dependencies of the container are not overwritten by those possibly installed on your computer.
 
-`node_modules` usa un volume separato, così le dipendenze Linux del container non vengono sovrascritte da quelle eventualmente installate sul computer. Quando si modificano `package.json` o `package-lock.json`, rieseguire `./start-lab.sh`: la build usa `npm ci` e `--renew-anon-volumes` rinnova il volume delle dipendenze senza cancellare i dati MySQL.
-
-Per aprire una shell nel backend:
+To open a shell in the backend:
 
 ```bash
 docker compose exec backend sh
 ```
 
-`Ctrl+C` interrompe solo la visualizzazione dei log. Per fermare l'ambiente, usare `docker compose down`: i dati MySQL restano nel volume `mysql_data`. Per ripartire da zero, eseguire `docker compose down -v` e poi `./start-lab.sh`; **il primo comando cancella i dati locali**. Lo script di avvio conserva i dati e aggiunge solo quelli mancanti tramite il seed.
+`Ctrl+C` only stops showing the logs. To stop the environment use `docker compose down`: the MySQL data stays in the `mysql_data` volume. To start again from scratch run `./start-lab.sh` **(This file also deletes data from the backend, so be careful !)**.
 
-## API locale
+## Local API
 
-| Risorsa | Campi richiesti per `POST` | Chiamate |
-| --- | --- | --- |
-| Città | `name`, `latitude` (−90…90), `longitude` (−180…180) | `GET /cities`, `GET /cities/:id`, `POST /cities` |
-| Volo | `departureCityId`, `arrivalCityId`, `departureTime`, `arrivalTime`, `airline`, `priceEur` | `GET /flights`, `GET /flights/:id`, `POST /flights` |
-| Hotel | `name`, `pricePerNightEur`, `cityId` | `GET /hotels`, `GET /hotels/:id`, `POST /hotels` |
-
-Gli ID sono interi positivi. Gli orari dei voli sono timestamp ISO 8601 in UTC, per esempio `2026-11-20T09:00:00Z`; l'arrivo deve seguire la partenza. I prezzi sono numeri non negativi. Un ID inesistente produce `404`, un input non valido `400`.
-
-### Database pronto per il laboratorio
-
-`docker compose exec backend npm run seed`, eseguito dalla radice, compila il progetto e prepara **6 città reali, 11 voli fittizi e 13 hotel fittizi**. Richiede MySQL avviato, ma non il server HTTP né l'accesso alle API esterne. Il dataset è in `nest-backend/seed/seed-data.ts`.
-
-Le città sono Roma, Milano, Parigi, Londra, Madrid e Berlino, con coordinate reali. Compagnie, hotel, prezzi in EUR e orari UTC sono dimostrativi. Parigi ha più voli in arrivo e hotel con prezzi diversi; Madrid non ha hotel nel dataset e Berlino non ha voli in arrivo, per esplorare risposte con liste vuote. Gli orari fissi di novembre 2026 non rappresentano disponibilità reali e restano utilizzabili anche dopo quelle date: l'API non filtra i voli per data.
-
-Il comando stampa gli ID effettivi delle città e tre URL pronti da provare dopo l'avvio del backend. Non assumere che gli ID siano da 1 a 6, soprattutto su un database già utilizzato.
-
-È possibile rieseguirlo: aggiunge solo i record mancanti senza cancellare o aggiornare quelli esistenti. Riconosce le città tramite nome e coordinate, i voli tramite città, compagnia e orari, gli hotel tramite città e nome; i prezzi esistenti vengono conservati. Eseguire un solo seed alla volta. Se un'esecuzione si interrompe, rilanciarla completa i dati mancanti. Su un database non vuoto, il numero totale di record può superare 6/11/13.
-
-### Inserimento manuale facoltativo
-
-Eseguire in ordine, sostituendo gli ID se il database contiene già dati:
-
-```bash
-curl -sS -X POST http://localhost:3000/cities -H 'Content-Type: application/json' -d '{"name":"Roma","latitude":41.9028,"longitude":12.4964}'
-curl -sS -X POST http://localhost:3000/cities -H 'Content-Type: application/json' -d '{"name":"Parigi","latitude":48.8566,"longitude":2.3522}'
-curl -sS -X POST http://localhost:3000/flights -H 'Content-Type: application/json' -d '{"departureCityId":1,"arrivalCityId":2,"departureTime":"2026-11-20T09:00:00Z","arrivalTime":"2026-11-20T11:00:00Z","airline":"Demo Air","priceEur":120}'
-curl -sS -X POST http://localhost:3000/hotels -H 'Content-Type: application/json' -d '{"name":"Hotel Demo","pricePerNightEur":90,"cityId":2}'
-curl -sS 'http://localhost:3000/cities/2/travel-options?currency=USD'
-```
-
-Si possono eseguire le stesse richieste con Postman. L'ultima risposta contiene la città, i voli in arrivo, gli hotel della città, il meteo corrente e il tasso EUR→USD. `ExternalService.rate` restituisce un semplice `number`: per esempio, la sezione del cambio è `"exchange": { "status": "ok", "data": 1.08 }`. `priceEur` e `pricePerNightEur` restano gli importi originali; `price` e `pricePerNight` sono gli importi convertiti. Il cambio Frankfurter è aggiornato giornalmente, quindi non rappresenta un prezzo garantito per una prenotazione futura.
-
-### Chiamare Frankfurter
-
-In `nest-backend/src/service/external.service.ts`, `rate(from, to)` restituisce il tasso di cambio dalla valuta di origine a quella di destinazione. L'helper `json` gestisce timeout e stato HTTP; il servizio valida e restituisce il solo tasso numerico, e il controller usa `available` per gestire gli errori.
-
-`GET /rate/:from/:to` espone il cambio tra due valute, per esempio `/rate/EUR/USD`. `GET /hotels/:id/price` converte il prezzo originale in EUR nella valuta richiesta, partendo da un tasso EUR→valuta. La funzione chiama Frankfurter anche quando le due valute coincidono; un errore esterno può quindi rendere indisponibile anche il cambio EUR→EUR.
-
-Se Open-Meteo o Frankfurter non rispondono entro 3 secondi o restituiscono un errore, la risposta rimane `200` con `status: "unavailable"` nella rispettiva sezione. Se manca il cambio, gli importi convertiti sono `null`; i prezzi EUR rimangono disponibili. I dati locali, invece, devono essere validi: una città inesistente produce `404`. Il timeout riguarda ciascuna chiamata esterna, avviata in parallelo.
-
-## Scaletta suggerita (120 minuti)
-
-| Minuti | Attività |
+| Resource | Calls |
 | --- | --- |
-| 0–10 | Richiamo di risorse, URI, metodi e codici HTTP dal laboratorio REST Basics |
-| 10–30 | Schema del dominio; servizio interno ed esterno; composizione, timeout e risposta parziale |
-| 30–55 | Avvio dell'ambiente già popolato ed esplorazione di città, voli e hotel |
-| 55–65 | Pausa |
-| 65–95 | Esplorazione di `/hotels/:id/price`; cambiare valuta e confrontare prezzo e tasso |
-| 95–115 | Esercizi sugli errori e breve discussione delle scelte di progetto |
-| 115–120 | Consegna tramite form e riepilogo |
+| City | `GET /cities`, `GET /cities/:id` |
+| Flight | `GET /flights`, `GET /flights/:id` |
+| Hotel | `GET /hotels`, `GET /hotels/:id` |
 
-## Esercizi e consegna
+The other endpoints (examples, exercises and assignment) are listed in [Examples, exercises and submission](#examples-exercises-and-submission). IDs are positive integers. A non-existent ID produces `404`, an invalid ID (`abc`, `0`) produces `400`. The calls with `?currency=` require a three-letter code: if it is missing or invalid, the response is `400`.
 
-Le richieste si provano dall'interfaccia web (gli endpoint ancora da scrivere mostrano *Not implemented yet*). Le istruzioni dettagliate di ogni esercizio sono nei commenti di `travel.controller.ts`.
+### Database ready for the lab
 
-1. **Esercizio 1, guidato:** `GET /flights/:id/weather`. Volo (dato interno) e meteo della città di arrivo (servizio esterno), in sequenza.
-2. **Esercizio 2:** `GET /hotels/:id/price?currency=USD`. Hotel (dato interno) e tasso di cambio Frankfurter; il prezzo originale in EUR non cambia.
-3. **Compito:** `GET /flights/:id/price?currency=USD`. Volo (dato interno) e tasso di cambio Frankfurter: prezzo convertito dalla valuta EUR. Le istruzioni sono in [ASSIGNMENT.md](ASSIGNMENT.md).
-4. **Facoltativo:** modificare temporaneamente l'URL di uno dei servizi in `external.service.ts` e ripetere la richiesta dell'esercizio 2. Individuare `status: "unavailable"` e i dati ancora presenti. Ripristinare poi l'URL.
+After executing `start-lab.sh` the project is started and **9 cities, 21 flights and 20 hotels** are prepared.
 
-Annotare inoltre i codici HTTP ottenuti con un ID inesistente (`404`) e con un ID non valido (`400`), e il motivo della differenza rispetto a un servizio esterno indisponibile.
+The cities are Rome, London, New York, Tokyo, Beijing, Toronto, Mexico City, Buenos Aires and Rio De Janeiro, with real coordinates and their currency. Airlines, hotels and prices are for demonstration. The flight times are generated on every run, within the next 48 hours, with the durations given in the dataset: this way every flight is in the future and has a weather forecast available at its arrival.
 
-Consegnare nel form indicato dai docenti **uno screenshot o il JSON** della risposta di `GET /flights/:id/price?currency=USD`, più due righe che spiegano un caso di errore osservato. Non inserire segreti o file `.env` nella consegna.
+**Warning:** the command **deletes the existing data** and creates it again from scratch, so the IDs change on every run. Do not assume the IDs are always the same: check them in the tables of the web interface or with `GET /cities`.
 
-## Limiti intenzionali
+### Calling Frankfurter
 
-La disponibilità dei servizi esterni richiede rete. Il meteo è corrente, non è una previsione legata alla data del volo; per mantenere il laboratorio breve non sono previsti filtri temporali, prenotazioni, utenti, paginazione o operazioni di modifica e cancellazione. Il codice mostra un'orchestrazione minima in un solo modulo NestJS.
+In `nest-backend/src/service/external.service.ts`, `rate(from, to)` returns the exchange rate from the source currency to the target currency. The `json` helper handles the timeout and the HTTP status; the service validates the answer and returns only the numeric rate, and the controller uses `available` to handle errors.
+
+`GET /rate/:from/:to` (Example 1) exposes the exchange rate between two currencies, for example `/rate/EUR/USD`: the response is `{ "status": "ok", "data": 1.08 }`. The aggregated responses use the same format in the `exchange` section. The Frankfurter rate is updated daily, so it is not a guaranteed price for a future booking.
+
+If Open-Meteo or Frankfurter do not answer within 3 seconds or return an error, the response is still `200` with `status: "unavailable"` in the corresponding section. If the rate is missing, the converted amounts are `null`; the original prices remain available. Local data, instead, must be valid: a non-existent city, flight or hotel produces `404`. The timeout applies to each external call; when the calls do not depend on each other, they start in parallel.
+
+## Suggested schedule (120 minutes, starting at 08:30)
+
+| Time | Activity |
+| --- | --- |
+| 08:30–08:40 | Review of resources, URIs, methods and HTTP codes from the REST Basics lab |
+| 08:40–09:00 | Domain schema; internal and external service; composition, timeout and partial response |
+| 09:00–09:25 | Starting the already seeded environment and exploring cities, flights and hotels |
+| 09:25–09:35 | Break |
+| 09:35–10:05 | Examples (exchange rate, weather at the arrival of a flight) and first exercise (price conversion of a hotel) |
+| 10:05–10:25 | Second exercise, assignment, observed errors and a short discussion of the design choices |
+| 10:25–10:30 | Submission through the form and wrap-up |
+
+## Examples, exercises and submission
+
+The endpoints are grouped as in the menu of the web interface: **Provided**, **Examples**, **Exercises** and **Assignment**. Requests are tried from the web interface (endpoints not written yet show *Not implemented yet*). The detailed instructions of each example and exercise are in the comments of `nest-backend/src/controller/travel.controller.ts` and `nest-backend/src/service/external.service.ts`.
+
+### Provided
+
+Already working, to explore the data: `GET /cities`, `GET /cities/:id`, `GET /flights`, `GET /flights/:id`, `GET /hotels` and `GET /hotels/:id`.
+
+### Examples
+
+Guided, to be followed step by step with the teacher.
+
+1. **Example 1:** `GET /rate/EUR/:currency`. Call an external service: Frankfurter exchange rate, with timeout and `unavailable` handling.
+2. **Example 2:** `GET /flights/:id/weather`. Flight (internal data) and weather of the arrival city at the arrival time (external service), in sequence.
+
+### Exercises
+
+To be written by the students, using the examples as a model.
+
+1. **Exercise 1:** `GET /hotels/:id/price?currency=USD`. Hotel (internal data) and Frankfurter exchange rate: the original price, in the currency of the hotel's city, does not change.
+2. **Exercise 2:** `GET /cities/:id/cheapest-trip?currency=USD`. Cheapest flight and hotel of a city, with the total in the requested currency.
+
+### Assignment
+
+`GET /flights/:id/price?currency=USD`. Flight (internal data) and Frankfurter exchange rate: price converted from EUR. The instructions are in [ASSIGNMENT.md](ASSIGNMENT.md).
+
+### Submission
+
+Submit through the form indicated by the teachers **a screenshot or the JSON** of the response of `GET /flights/:id/price?currency=USD`, plus two lines explaining an observed error case. Do not include secrets or `.env` files in the submission.
+

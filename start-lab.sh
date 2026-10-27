@@ -8,6 +8,9 @@ cd "$ROOT"
 
 [ -f .env ] || { echo "Missing .env in $ROOT" >&2; exit 1; }
 
+echo "==> Deleting old backend data"
+docker compose down -v
+
 echo "==> Starting the backend, MySQL and Redis"
 docker compose up -d --build --renew-anon-volumes
 
