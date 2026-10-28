@@ -71,10 +71,8 @@ export class ExternalService implements OnModuleDestroy {
 
     if (date == undefined) date = new Date();
 
-    // Validate the date before using the cache or the network. It is a JavaScript
-    // Date object, not a string: flights loaded by TypeORM already have an
-    // arrivalTime of type Date.
-    if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
+    // Validate the date before using the cache or the network (e.g. an Invalid Date).
+    if (!Number.isFinite(date.getTime())) {
       throw new Error('Invalid weather date');
     }
     const hour = Math.floor(date.getTime() / 3600000) * 3600;
@@ -89,13 +87,9 @@ export class ExternalService implements OnModuleDestroy {
     } catch {}
 
     // 2. Reuse json(url): GET, 3-second timeout and HTTP status check.
-    // The optional base URL (TRAVEL_WEATHER_BASE_URL) allows testing the
-    // service against a simulated provider.
-    const baseUrl = process.env.TRAVEL_WEATHER_BASE_URL ?? 'https://api.open-meteo.com';
-    const url = new URL(`${baseUrl}/v1/forecast`);
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
     url.searchParams.set('latitude', String(latitude));
     url.searchParams.set('longitude', String(longitude));
-    let weather: Weather;
 
     // Ask for all the hours of the UTC day of the requested time. Unix time avoids
     // any interpretation in the local time zone of the server; all the arrays
@@ -122,7 +116,7 @@ export class ExternalService implements OnModuleDestroy {
         typeof code !== 'number' || !Number.isInteger(code) || code < 0 || code > 99) {
       throw new Error('Requested weather unavailable');
     }
-    weather = {
+    const weather: Weather = {
       time: new Date(hour * 1000).toISOString(),
       temperature_2m: temperature,
       temperatureUnit: '°C',

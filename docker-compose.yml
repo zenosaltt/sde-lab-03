@@ -1,7 +1,9 @@
+name: travel-lab
 
 services:
   backend:
     build: ./nest-backend
+    container_name: travel-lab-backend
     env_file: .env
     environment:
       DB_HOST: mysql
@@ -23,7 +25,7 @@ services:
 
   mysql:
     image: mysql:8.4
-    container_name: nestjs-mysql
+    container_name: travel-lab-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -51,7 +53,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: nestjs-redis
+    container_name: travel-lab-redis
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"

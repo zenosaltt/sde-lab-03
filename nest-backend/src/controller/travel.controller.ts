@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Controller,
   Get,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Query,
@@ -27,15 +26,6 @@ async function available<T>(promise: Promise<T>): Promise<Available<T>> {
     // We ignore the error details: the client only needs to know it is unavailable.
     return { status: "unavailable" };
   }
-}
-
-// IDs in the database start from 1. ParseIntPipe already guarantees that the
-// value is an integer; this function rejects 0 and negative numbers with 400.
-function requirePositiveId(id: number): number {
-  if (id < 1) {
-    throw new BadRequestException("ID must be positive");
-  }
-  return id;
 }
 
 // Reads a currency code (e.g. from ?currency=usd).
@@ -64,12 +54,6 @@ function convertPrice(price: number, rate: number | null): number | null {
   return Math.round(Number(price) * rate * 100) / 100;
 }
 
-// Prices are stored with two decimals. Adding them as whole cents avoids
-// floating-point errors such as 0.1 + 0.2 = 0.30000000000000004.
-function cents(price: number): number {
-  return Math.round(Number(price) * 100);
-}
-
 // @Controller() marks the class as a set of HTTP routes. No prefix is given,
 // so each route below uses its full path (e.g. /cities).
 // The controller reads the parameters and builds the response. The database
@@ -92,10 +76,10 @@ export class TravelController {
 
   // GET /cities/3 -> one city. ":id" is a path parameter.
   // ParseIntPipe converts "3" into the number 3 (and answers 400 for "abc").
-  // requirePositiveId rejects 0 or negatives (400); the service answers 404 if the city does not exist.
+  // The service answers 400 for 0 or negatives and 404 if the city does not exist.
   @Get("cities/:id")
   getCity(@Param("id", ParseIntPipe) id: number) {
-    return this.travel.city(requirePositiveId(id));
+    return this.travel.city(id);
   }
 
   // Flights
@@ -109,7 +93,7 @@ export class TravelController {
   // GET /flights/:id -> one flight (400 for an invalid ID, 404 if it does not exist).
   @Get("flights/:id")
   getFlight(@Param("id", ParseIntPipe) id: number) {
-    return this.travel.flight(requirePositiveId(id));
+    return this.travel.flight(id);
   }
 
   // Hotels
@@ -123,7 +107,7 @@ export class TravelController {
   // GET /hotels/:id -> one hotel (400 invalid ID, 404 not found).
   @Get("hotels/:id")
   getHotel(@Param("id", ParseIntPipe) id: number) {
-    return this.travel.hotel(requirePositiveId(id));
+    return this.travel.hotel(id);
   }
 
   // External exchange rate
@@ -133,11 +117,12 @@ export class TravelController {
   @Get("rate/:from/:to")
   async getRate(@Param("from") from: string, @Param("to") to: string) {
     // Validate both codes (three letters, upper case); invalid -> 400.
-    from = parseCurrency(from);
-    to = parseCurrency(to);
+    const source = parseCurrency(from);
+    const target = parseCurrency(to);
+
     // available(...) turns an external failure into { status: 'unavailable' }
     // instead of an error, so the answer is still 200.
-    return await available(this.external.rate(from, to));
+    return available(this.external.rate(source, target));
   }
 
   // ---------------------------------------------------------------------------
@@ -151,7 +136,7 @@ export class TravelController {
   async getFlightWeather(@Param("id", ParseIntPipe) id: number) {
     // 1. The service loads the flight together with arrivalCity, so no second
     //    query is needed to get the coordinates of the destination.
-    const flight = await this.travel.flight(requirePositiveId(id));
+    const flight = await this.travel.flight(id);
 
     // 2. arrivalTime is passed as the optional third parameter of
     //    ExternalService.weather. Without a date, that method returns the
@@ -186,7 +171,7 @@ export class TravelController {
   ) {
     // Validate the input before contacting the database or an external provider.
     const currency = parseCurrency(requestedCurrency);
-    const hotel = await this.travel.hotel(requirePositiveId(id));
+    const hotel = await this.travel.hotel(id);
 
     // The rate goes from the currency of the hotel (that of its city) to the
     // requested currency. available turns a Frankfurter failure into
@@ -226,41 +211,21 @@ export class TravelController {
     @Query("currency") requestedCurrency?: string,
   ) {
     const currency = parseCurrency(requestedCurrency);
-    const city = await this.travel.city(requirePositiveId(id));
+    const city = await this.travel.city(id);
 
     // The four calls are independent, so they start together:
-    // - flights and hotels come from the database (a database error propagates:
-    //   available is reserved for external data);
+    // - the cheapest flight and hotel come from the database (404 if the city
+    //   has none; a database error propagates: available is for external data);
     // - flight rate: EUR -> requested currency;
     // - hotel rate: city currency -> requested currency.
-    const [flights, hotels, flightExchange, hotelExchange] = await Promise.all([
-      this.travel.flightsTo(city.id),
-      this.travel.hotelsIn(city.id),
+    // Every flight can be combined with every hotel of the same destination and
+    // there are no package discounts, so min(flight + hotel) = min(flight) + min(hotel).
+    const [flight, hotel, flightExchange, hotelExchange] = await Promise.all([
+      this.travel.cheapestFlightTo(city.id),
+      this.travel.cheapestHotelIn(city.id),
       available(this.external.rate("EUR", currency)),
       available(this.external.rate(city.currency, currency)),
     ]);
-    if (flights.length === 0 || hotels.length === 0) {
-      throw new NotFoundException("No flight-hotel combination for this city");
-    }
-
-    // Every flight can be combined with every hotel of the same destination and
-    // there are no package discounts, so min(flight + hotel) = min(flight) + min(hotel).
-    // Two scans are enough, O(flights + hotels), without building all the pairs.
-    // Prices are compared in whole cents; on a tie the lowest ID wins, so the
-    // result does not depend on the order of the query results.
-    const flight = flights.reduce((best, candidate) => {
-      const difference = cents(candidate.priceEur) - cents(best.priceEur);
-      return difference < 0 || (difference === 0 && candidate.id < best.id)
-        ? candidate
-        : best;
-    });
-    const hotel = hotels.reduce((best, candidate) => {
-      const difference =
-        cents(candidate.pricePerNight) - cents(best.pricePerNight);
-      return difference < 0 || (difference === 0 && candidate.id < best.id)
-        ? candidate
-        : best;
-    });
 
     const flightPrice = convertPrice(
       flight.priceEur,
@@ -274,7 +239,7 @@ export class TravelController {
     const totalPrice =
       flightPrice === null || pricePerNight === null
         ? null
-        : (cents(flightPrice) + cents(pricePerNight)) / 100;
+        : Math.round((flightPrice + pricePerNight) * 100) / 100;
 
     // The original prices stay inside flight (EUR) and hotel (currency of the
     // city); the converted amounts are null when a rate is unavailable.

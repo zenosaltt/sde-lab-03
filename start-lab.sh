@@ -8,7 +8,7 @@ cd "$ROOT"
 
 [ -f .env ] || { echo "Missing .env in $ROOT" >&2; exit 1; }
 
-echo "==> Deleting old backend data"
+echo "==> Deleting old containers and volumes"
 docker compose down -v
 
 echo "==> Starting the backend, MySQL and Redis"
