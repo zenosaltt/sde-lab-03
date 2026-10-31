@@ -112,7 +112,7 @@ function itemCard(item) {
   return null;
 }
 
-// { status: 'ok', data } or { status: 'unavailable' } (see "available" in the controller).
+// { status: 'ok', data } or { status: 'unavailable' } (see "available" in the service).
 function externalBlock(label, value, describe) {
   // Same structure as the other sections (small title + card), so they align in the grid.
   const section = el('div', 'section');
@@ -246,7 +246,7 @@ form.addEventListener('submit', async (event) => {
     if (isExercise && routeMissing) {
       statusEl.textContent = 'Not implemented yet';
       showMessage('This endpoint does not exist in the backend yet. ' +
-        'Add the method to travel.controller.ts (see the comments of the exercise) and try again.', true);
+        'Add the route to travel.controller.ts and the logic to travel.service.ts (see the comments of the exercise) and try again.', true);
     } else if (!response.ok) {
       showMessage(Array.isArray(data.message) ? data.message.join(', ') : (data.message ?? text), true);
     } else {

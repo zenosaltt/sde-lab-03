@@ -32,7 +32,7 @@ type FlightTemplate = Omit<SeedFlight, 'departureTime' | 'arrivalTime'> & {
 };
 
 const templates: FlightTemplate[] = [
-  // Europa <-> resto del mondo
+  // Europe <--> world
   { departureCity: 'Rome', arrivalCity: 'London', airline: 'Tutorial Jet', priceEur: 155, durationMinutes: 160 },
   { departureCity: 'London', arrivalCity: 'Rome', airline: 'Tutorial Jet', priceEur: 175.25, durationMinutes: 160 },
   { departureCity: 'Rome', arrivalCity: 'New York', airline: 'Demo Air', priceEur: 540, durationMinutes: 510 },

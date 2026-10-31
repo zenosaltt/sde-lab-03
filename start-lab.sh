@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the lab in Docker, seed missing data, and follow the backend logs.
+# Start the lab in Docker, seed the database, and follow the backend logs.
 # Usage: ./start-lab.sh
 set -euo pipefail
 

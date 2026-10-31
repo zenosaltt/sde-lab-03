@@ -16,7 +16,7 @@ type Weather = { temperature_2m?: number; weather_code?: number; time?: string; 
 // Downloads JSON from a URL. Throws an error (never returns bad data) when:
 // - the server does not answer within TIMEOUT_MS (AbortSignal.timeout aborts the request),
 // - the server answers with an error status (404, 500, ...).
-// The callers (see "available" in the controller) catch the error and turn it
+// The callers (see "available" in the service) catch the error and turn it
 // into { status: 'unavailable' }.
 async function json(url: URL): Promise<unknown> {
   // fetch() performs the HTTP GET; "signal" cancels it after the timeout.
@@ -65,7 +65,7 @@ export class ExternalService implements OnModuleDestroy {
   // Returns the weather for some coordinates. Without a date it uses the
   // current time; with a date it returns the weather of the UTC hour that
   // contains that instant (e.g. 17:10Z -> forecast of 17:00Z).
-  // A date outside the coverage of Open-Meteo throws an error: the controller
+  // A date outside the coverage of Open-Meteo throws an error: the service
   // turns it into "unavailable", it does not fall back to the current weather.
   async weather(latitude: number, longitude: number, date?: Date): Promise<Weather> {
 
@@ -101,6 +101,7 @@ export class ExternalService implements OnModuleDestroy {
     url.searchParams.set('timeformat', 'unixtime');
     url.searchParams.set('start_date', day);
     url.searchParams.set('end_date', day);
+    
     const data = await json(url) as {
       hourly?: { time?: unknown; temperature_2m?: unknown; weather_code?: unknown };
     } | null;
@@ -132,58 +133,30 @@ export class ExternalService implements OnModuleDestroy {
     return weather;
   }
 
-  // GUIDED EXAMPLE 1: query the external REST service Frankfurter.
-  // The goal is to implement rate('EUR', 'USD'), which returns the value of
-  // 1 EUR in USD. The rate is later used as a multiplier to convert a price.
-  async rateExample(from: string, to: string): Promise<number> {
-    // 1. Start from GET /rate/EUR/USD of our own API: the controller has already
-    //    converted the codes to upper case and checked the three letters.
-    //    This does not guarantee that Frankfurter supports the currency.
-
-    // 2. Build a URL object for the external resource:
-    //    https://api.frankfurter.dev/v2/rate/{from}/{to}
-    //    Replace the placeholders with the parameters. No API key is needed.
-    //    Do not confuse the local route with the HTTP request to Frankfurter.
-
-    // 3. Call the json(url) helper with await. Look at its definition: it
-    //    performs a GET with fetch, stops waiting after 3 seconds, checks
-    //    response.ok and parses the JSON body.
-    //    async/await lets us wait for the network without blocking Node.js.
-
-    // 4. Read the rate property of the answer. The helper returns unknown:
-    //    describe the expected shape with { rate?: number }, remembering that
-    //    a TypeScript assertion does not validate data received at runtime.
-    //    Check that rate is a number and that Number.isFinite is true;
-    //    otherwise throw an error, never return an invented rate.
-
-    // 5. Return only the numeric rate, not the whole external answer.
-    //    Let errors propagate: available(...) in the controller turns them
-    //    into { status: 'unavailable' }, keeping HTTP 200.
-
-    // 6. After the implementation, try GET /rate/EUR/USD: we expect
-    //    { status: 'ok', data: <number> }, whose value changes over time.
-    //    With /rate/EUR/US we expect 400 from the local validation;
-    //    with /rate/EUR/ZZZ we expect 'unavailable' because of the external error.
-
-    // TODO: implement steps 2-5 together and remove this placeholder.
-    // Meanwhile the project still compiles and the endpoints that use the
-    // exchange rate report it as unavailable.
-    throw new Error('Not implemented');
-  }
-
-  // SOLUTION
+  // EXAMPLE 1: query the external REST service Frankfurter.
+  // Returns the exchange rate from `from` to `to`, i.e. the value of 1 unit of
+  // `from` expressed in `to` (rate('EUR', 'USD') -> 1.08 means 1 EUR = 1.08 USD).
+  // The caller multiplies a price by this number to convert it.
   async rate(from: string, to: string): Promise<number> {
-    // Set the URL with requested parameters.
+    // 1. Build the URL of the external resource (not to be confused with our own
+    //    route GET /rate/:from/:to): https://api.frankfurter.dev/v2/rate/EUR/USD
+    //    No API key is needed.
     const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
-  
-    // Wait for GET and consequent JSON parsing
-    const data = await json(url) as { rate?: number };
-  
-    // Sanity check
+
+    // 2. json(url) does the GET with fetch, gives up after 3 seconds, throws if
+    //    the status is not 2xx and parses the body. await lets Node.js serve
+    //    other requests while the network answers.
+    //    The result is typed as { rate?: number } only to describe what we
+    //    expect: the assertion does not check the data received at runtime.
+    const data = (await json(url)) as { rate?: number };
+
+    // 3. Runtime check of the one field we use: it must be a finite number
+    //    (typeof alone would accept NaN and Infinity).
     if (typeof data.rate !== 'number' || !Number.isFinite(data.rate)) {
       throw new Error('Invalid rate response');
     }
-  
+
+    // 4. Return only the number, not the whole external answer.
     return data.rate;
   }
 }
