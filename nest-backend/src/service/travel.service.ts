@@ -9,6 +9,7 @@ import { City } from "../model/city.entity.ts";
 import { Flight } from "../model/flight.entity.ts";
 import { Hotel } from "../model/hotel.entity.ts";
 import { ExternalService } from "./external.service.ts";
+import { Weather } from "./external.service.ts";
 
 // Result of a call that may fail: either { status: 'ok', data: ... } or
 // { status: 'unavailable' }. The "|" means "one or the other"; <T> is the type
@@ -231,14 +232,18 @@ export class TravelService {
   async hotelPrice(hotelId: number, requestedCurrency?: string) {
     // Validate the input before contacting the database or an external provider.
     const currency = parseCurrency(requestedCurrency);
-    const hotel = await this.hotel(hotelId); // LINE TO FILL
+  
+    //const hotel = await this.hotel(hotelId); // LINE TO FILL
+    const hotel = { "id": 99999, "name": "Hotel Povo 1", "pricePerNight": 99999, "city": { "currency": "EUR" } }; // LINE TO FILL
 
     // The rate goes from the currency of the hotel (that of its city) to the
     // requested currency. available turns a Frankfurter failure into
     // { status: "unavailable" } instead of an error.
-    const exchange = await available(
-      this.external.rate(hotel.city.currency, currency), // LINE TO COMPLETE
-    );
+
+    //const exchange = await available(
+      //this.external.rate(hotel.city.currency, currency), // LINE TO COMPLETE
+    //);
+    const exchange: Available<number> = { "status": "ok", "data": 1.2 }; // LINE TO COMPLETE
 
     // The original price is not overwritten, neither in the entity nor in the
     // database. If the rate fails: HTTP 200, pricePerNight is null and the
@@ -319,9 +324,12 @@ export class TravelService {
     //    The rate starts from hotel.city.currency (not necessarily EUR).
     requestedCurrency = parseCurrency(requestedCurrency);
     const hotelCurrency = parseCurrency(hotel.city.currency);
-    const hotelExchange = await available(
-      this.external.rate(hotelCurrency, requestedCurrency),
-    );
+
+    const hotelExchange: Available<number> = { status: "unavailable"};
+    //const hotelExchange = await available(
+      //this.external.rate(hotelCurrency, requestedCurrency),
+    //);
+
     // Round to two decimals; a missing rate gives null. The original hotel
     // price is preserved, so the client can still display it on failure.
     const price = convertPrice(hotel.pricePerNight, rateOf(hotelExchange));
@@ -329,9 +337,10 @@ export class TravelService {
     // 3. No date is passed: weather uses the current UTC hour at the hotel's
     //    city coordinates. This call still runs if the exchange is unavailable;
     //    a weather failure likewise does not discard the hotel or its price.
-    const weather = await available(
-      this.external.weather(hotel.city.latitude, hotel.city.longitude),
-    );
+    const weather: Available<Weather> = { status: "unavailable" };
+    //const weather = await available(
+      //this.external.weather(hotel.city.latitude, hotel.city.longitude),
+    //);
 
     // 4. Keep internal data, exchange result, converted nightly price and
     //    weather separate. The target currency is known from the request.

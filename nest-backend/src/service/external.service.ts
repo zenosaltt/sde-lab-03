@@ -11,7 +11,7 @@ const WEATHER_CACHE_TTL_SECONDS = 600;
 
 // The part of the Open-Meteo answer we use. "?" means the field may be missing,
 // so TypeScript forces us to check before relying on it.
-type Weather = { temperature_2m?: number; weather_code?: number; time?: string; temperatureUnit?: string };
+export type Weather = { temperature_2m?: number; weather_code?: number; time?: string; temperatureUnit?: string };
 
 // Downloads JSON from a URL. Throws an error (never returns bad data) when:
 // - the server does not answer within TIMEOUT_MS (AbortSignal.timeout aborts the request),
