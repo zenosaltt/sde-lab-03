@@ -140,7 +140,7 @@ function renderObject(data) {
   const hotelPriceInCard = data.hotel && data.currency && 'pricePerNight' in data;
 
   for (const [key, value] of Object.entries(data)) {
-    if (hotelPriceInCard && (key === 'pricePerNight' || key === 'originalPricePerNight' || key === 'originalCurrency')) {
+    if (hotelPriceInCard && key === 'pricePerNight') {
       continue;
     }
     // The currency is already written next to every price: no box for it.

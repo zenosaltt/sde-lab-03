@@ -245,8 +245,6 @@ export class TravelService {
     // original amount is still returned.
     return {
       hotel,
-      originalPricePerNight: hotel.pricePerNight,
-      originalCurrency: hotel.city.currency,
       currency,
       exchange,
       pricePerNight: convertPrice(hotel.pricePerNight, rateOf(exchange)),
