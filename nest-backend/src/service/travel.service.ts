@@ -54,7 +54,8 @@ function convertPrice(price: number, rate: number | null): number | null {
 
 // The rate of an Available result, or null when the exchange service failed.
 function rateOf(exchange: Available<number>): number | null {
-  return exchange.status === "ok" ? exchange.data : null;
+  if (exchange.status === "ok") return exchange.data;
+  return null;
 }
 
 // Relations loaded with every flight: its departure and arrival city.
@@ -233,17 +234,16 @@ export class TravelService {
     // Validate the input before contacting the database or an external provider.
     const currency = parseCurrency(requestedCurrency);
   
-    //const hotel = await this.hotel(hotelId); // LINE TO FILL
-    const hotel = { "id": 99999, "name": "Hotel Povo 1", "pricePerNight": 99999, "city": { "currency": "EUR" } }; // LINE TO FILL
+    // const hotel = await this.hotel(hotelId); // LINE TO FILL
+    const hotel = { "id": 99999, "name": "Hotel Povo 1", "pricePerNight": 99999, "city": { "currency": "EUR" } };
 
     // The rate goes from the currency of the hotel (that of its city) to the
     // requested currency. available turns a Frankfurter failure into
     // { status: "unavailable" } instead of an error.
-
     //const exchange = await available(
       //this.external.rate(hotel.city.currency, currency), // LINE TO COMPLETE
     //);
-    const exchange: Available<number> = { "status": "ok", "data": 1.2 }; // LINE TO COMPLETE
+    const exchange: Available<number> = { "status": "unavailable" };
 
     // The original price is not overwritten, neither in the entity nor in the
     // database. If the rate fails: HTTP 200, pricePerNight is null and the
@@ -282,16 +282,24 @@ export class TravelService {
     const [flight, hotel, flightExchange, hotelExchange] = await Promise.all([
       this.cheapestFlightTo(cityId),
       this.cheapestHotelIn(cityId),
-      available(this.external.rate("EUR", currency)), // LINE TO FILL
-      available(this.external.rate(city.currency, currency)), // LINE TO FILL
+      //available(this.external.rate("EUR", currency)),
+      available(this.external.rate("xyz", "zyx")),
+      //available(this.external.rate(city.currency, currency)),
+      available(this.external.rate("xyz", "zyx"))
     ]);
 
-    const flightPrice = convertPrice(flight.priceEur, rateOf(flightExchange)); // LINE TO FILL
+    const flightPrice = convertPrice(flight.priceEur, rateOf(flightExchange));
+
+    // HINT: look at flightPrice
+    //const pricePerNight = convertPrice(
+      //hotel.pricePerNight,
+      //rateOf(hotelExchange),
+    //);
     const pricePerNight = convertPrice(
-      hotel.pricePerNight, // LINE TO FILL
-      rateOf(hotelExchange), // LINE TO FILL
-    );
- 
+      999,
+      null,
+    )
+
     // The original prices stay inside flight (EUR) and hotel (currency of the
     // city); the converted amounts are null when a rate is unavailable.
     return {
