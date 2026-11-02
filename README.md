@@ -11,7 +11,8 @@ sde-lab-03/
 ├── ASSIGNMENT.md                     assignment for the students
 ├── ASSIGNMENT_SOLUTION.md            teacher solution (do not distribute)
 ├── docker-compose.yml                backend, MySQL and Redis
-├── start-lab.sh                      starts Docker and seeds the database
+├── start-lab.sh                      starts Docker and seeds the database (Linux/macOS)
+├── start-lab.ps1                     same as start-lab.sh, for Windows PowerShell
 └── nest-backend/
     ├── Dockerfile                    Node.js environment for the lab
     ├── package.json
