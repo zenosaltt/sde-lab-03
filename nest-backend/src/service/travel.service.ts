@@ -275,16 +275,16 @@ export class TravelService {
     // Every flight can be combined with every hotel of the same destination and
     // there are no package discounts, so min(flight + hotel) = min(flight) + min(hotel).
     const [flight, hotel, flightExchange, hotelExchange] = await Promise.all([
-      this.cheapestFlightTo(cityId), // LINE TO FILL
-      this.cheapestHotelIn(cityId),  // LINE TO FILL
-      available(this.external.rate("EUR", currency)),
-      available(this.external.rate(city.currency, currency)),
+      this.cheapestFlightTo(cityId),
+      this.cheapestHotelIn(cityId),
+      available(this.external.rate("EUR", currency)), // LINE TO FILL
+      available(this.external.rate(city.currency, currency)), // LINE TO FILL
     ]);
 
-    const flightPrice = convertPrice(flight.priceEur, rateOf(flightExchange));
+    const flightPrice = convertPrice(flight.priceEur, rateOf(flightExchange)); // LINE TO FILL
     const pricePerNight = convertPrice(
-      hotel.pricePerNight,
-      rateOf(hotelExchange),
+      hotel.pricePerNight, // LINE TO FILL
+      rateOf(hotelExchange), // LINE TO FILL
     );
  
     // The original prices stay inside flight (EUR) and hotel (currency of the
@@ -307,11 +307,11 @@ export class TravelService {
   // 400: invalid ID or currency; 404: flight not found;
   // 200: flight with price, or price null if Frankfurter is unavailable.
   // ---------------------------------------------------------------------------
-  async flightPrice(id: number, requestedCurrency?: string) {
+  async flightPrice(flightId: number, requestedCurrency?: string) {
 
     // FILL THESE 4 LINES
     const currency = parseCurrency(requestedCurrency);
-    const flight = await this.flight(id);
+    const flight = await this.flight(flightId);
     const flightExchange = await available(this.external.rate("EUR", currency));
     const price = convertPrice(flight.priceEur, rateOf(flightExchange)); 
 
