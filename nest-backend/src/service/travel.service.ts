@@ -251,7 +251,7 @@ export class TravelService {
     };
   }
 
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------given a hotel, return its price per night in the requested currency-------------------------------
   // EXERCISE 2: business logic, cheapest flight + cheapest hotel.
   // GET /cities/3/cheapest-trip?currency=USD (the currency is required).
   // Contract of the lab: one inbound flight from any origin + ONE night in a
@@ -286,25 +286,16 @@ export class TravelService {
       hotel.pricePerNight,
       rateOf(hotelExchange),
     );
-    // The total exists only if both rates are available.
-    const totalPrice =
-      flightPrice === null || pricePerNight === null
-        ? null
-        : Math.round((flightPrice + pricePerNight) * 100) / 100;
-
+ 
     // The original prices stay inside flight (EUR) and hotel (currency of the
     // city); the converted amounts are null when a rate is unavailable.
     return {
-      city,
       flight,
       hotel,
-      nights: 1,
-      currency,
       flightExchange,
       hotelExchange,
       flightPrice,
       pricePerNight,
-      totalPrice,
     };
   }
 
