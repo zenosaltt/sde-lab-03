@@ -73,13 +73,22 @@ function cityCard(city) {
   return card;
 }
 
-function flightCard(flight) {
+// Like hotelCard, show the converted price and keep the original as a reference.
+function flightCard(flight, converted) {
   const card = el('div', 'item');
   const route = el('h3', '', flight.departureCity.name + ' → ' + flight.arrivalCity.name);
   card.append(route);
   card.append(el('p', '', formatTime(flight.departureTime) + '  –  ' + formatTime(flight.arrivalTime)));
   card.append(el('p', 'muted', flight.airline + ' · ' + formatDuration(flight.departureTime, flight.arrivalTime)));
-  card.append(el('p', 'price', euro(flight.priceEur)));
+  if (converted && typeof converted.price === 'number') {
+    card.append(el('p', 'price', converted.price.toFixed(2) + ' ' + converted.currency));
+    if (converted.currency !== 'EUR') {
+      card.append(el('p', 'muted', 'Original: ' + euro(flight.priceEur)));
+    }
+  } else {
+    card.append(el('p', 'price', euro(flight.priceEur)));
+    if (converted) card.append(el('p', 'error', 'Converted price unavailable'));
+  }
   return card;
 }
 
@@ -132,15 +141,23 @@ function describeWeather(weather) {
 }
 
 // A response object (e.g. { flight, weather }) becomes a list of labelled sections.
-function renderObject(data) {
+function renderObject(data, path) {
   const wrap = el('div', 'sections');
   const facts = el('dl', 'facts');
+  // cheapestTrip returns only the trip and converted prices. Read the target
+  // currency from the submitted request when it is not included in the response.
+  const currency = data.currency
+    ?? new URLSearchParams(path.split('?')[1]).get('currency')?.toUpperCase();
 
-  // The hotel card shows the converted price, so these are not repeated below.
-  const hotelPriceInCard = data.hotel && data.currency && 'pricePerNight' in data;
+  // Converted prices belong in their cards, so they are not repeated below.
+  const hotelPriceInCard = data.hotel && currency && 'pricePerNight' in data;
+  // Exercise 2 uses flightPrice; the assignment uses price.
+  const flightPriceKey = 'flightPrice' in data ? 'flightPrice' : 'price';
+  const flightPriceInCard = data.flight && currency && flightPriceKey in data;
 
   for (const [key, value] of Object.entries(data)) {
-    if (hotelPriceInCard && key === 'pricePerNight') {
+    if ((hotelPriceInCard && key === 'pricePerNight')
+      || (flightPriceInCard && key === flightPriceKey)) {
       continue;
     }
     // The currency is already written next to every price: no box for it.
@@ -149,7 +166,7 @@ function renderObject(data) {
       // price, currency, nights, totals ... shown as "label: value"
       let text = String(value);
       if (typeof value === 'number' && /price|total/i.test(key)) {
-        text = value.toFixed(2) + ' ' + (data.currency ?? '');
+        text = value.toFixed(2) + ' ' + (currency ?? '');
       }
       if (value === null && /price|total/i.test(key)) text = 'unavailable';
       const fact = el('div', 'fact');
@@ -162,11 +179,13 @@ function renderObject(data) {
       const from = key === 'flightExchange' ? 'EUR'
         : key === 'hotelExchange' ? data.city?.currency ?? data.hotel?.city?.currency
         : data.originalCurrency ?? data.hotel?.city?.currency ?? 'EUR';
-      wrap.append(externalBlock(prettyLabel(key), value, (rate) => '1 ' + from + ' = ' + rate + ' ' + (data.currency ?? '')));
+      wrap.append(externalBlock(prettyLabel(key), value, (rate) => '1 ' + from + ' = ' + rate + ' ' + (currency ?? '')));
     } else if (itemCard(value)) {
       const section = el('div', 'section');
       const card = key === 'hotel' && hotelPriceInCard
-        ? hotelCard(value, { currency: data.currency, price: data.pricePerNight })
+        ? hotelCard(value, { currency, price: data.pricePerNight })
+        : key === 'flight' && flightPriceInCard
+        ? flightCard(value, { currency, price: data[flightPriceKey] })
         : itemCard(value);
       section.append(el('h4', '', prettyLabel(key)), card);
       wrap.append(section);
@@ -212,7 +231,7 @@ function render(data, path) {
     return;
   }
 
-  resultEl.append(renderObject(data));
+  resultEl.append(renderObject(data, path));
 }
 
 function showMessage(text, isError) {
