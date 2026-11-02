@@ -197,10 +197,10 @@ export class TravelService {
   // built with the coordinates of the destination and the arrival time.
   // 400: invalid ID; 404: flight not found; 200: flight with weather or "unavailable".
   // ---------------------------------------------------------------------------
-  async flightWeather(id: number) {
+  async flightWeather(flightId: number) {
     // 1. The flight is loaded together with arrivalCity, so no second query is
     //    needed to get the coordinates of the destination.
-    const flight = await this.flight(id);
+    const flight = await this.flight(flightId);
 
     // 2. arrivalTime is passed as the optional third parameter of
     //    ExternalService.weather. Without a date, that method returns the
@@ -228,10 +228,10 @@ export class TravelService {
   // (city.currency): London in GBP, Tokyo in JPY, ... The conversion starts there.
   // Same pattern as the first example: internal data -> external API -> combined answer.
   // ---------------------------------------------------------------------------
-  async hotelPrice(id: number, requestedCurrency?: string) {
+  async hotelPrice(hotelId: number, requestedCurrency?: string) {
     // Validate the input before contacting the database or an external provider.
     const currency = parseCurrency(requestedCurrency);
-    const hotel = await this.hotel(id); // LINE TO FILL
+    const hotel = await this.hotel(hotelId); // LINE TO FILL
 
     // The rate goes from the currency of the hotel (that of its city) to the
     // requested currency. available turns a Frankfurter failure into
@@ -262,10 +262,10 @@ export class TravelService {
   // 400 if the currency is invalid; 404 if the city does not exist or one of
   // the two parts is missing.
   // ---------------------------------------------------------------------------
-  async cheapestTrip(id: number, requestedCurrency?: string) {
+  async cheapestTrip(cityId: number, requestedCurrency?: string) {
     
     const currency = parseCurrency(requestedCurrency);
-    const city = await this.city(id);
+    const city = await this.city(cityId);
 
     // The four calls are independent, so they start together:
     // - the cheapest flight and hotel come from the database (404 if the city
@@ -275,8 +275,8 @@ export class TravelService {
     // Every flight can be combined with every hotel of the same destination and
     // there are no package discounts, so min(flight + hotel) = min(flight) + min(hotel).
     const [flight, hotel, flightExchange, hotelExchange] = await Promise.all([
-      this.cheapestFlightTo(id), // LINE TO FILL
-      this.cheapestHotelIn(id),  // LINE TO FILL
+      this.cheapestFlightTo(cityId), // LINE TO FILL
+      this.cheapestHotelIn(cityId),  // LINE TO FILL
       available(this.external.rate("EUR", currency)),
       available(this.external.rate(city.currency, currency)),
     ]);
