@@ -79,12 +79,12 @@ export class TravelController {
     return this.travel.cheapestTrip(id, currency);
   }
 
-  // GET /flights/1/price?currency=USD -> flight price converted from EUR (assignment, see the service).
-  @Get("flights/:id/price")
-  getFlightPrice(
+   // GET /flights/1/weather -> flight + weather at arrival (example, see the service).
+  @Get("cities/:id/cheapest-hotel-weather")
+  getCheapestHotelWeather(
     @Param("id", ParseIntPipe) id: number,
     @Query("currency") currency?: string,
   ) {
-    return this.travel.flightPrice(id, currency);
+    return this.travel.cheapestHotelWeather(id, currency);
   }
 }

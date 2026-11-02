@@ -300,28 +300,28 @@ export class TravelService {
   }
 
   // ---------------------------------------------------------------------------
-  // ASSIGNMENT SOLUTION: flight + currency conversion.
-  // GET /flights/1/price?currency=USD (the currency is required: 400 if missing).
-  // The price of a flight in the database is in EUR (priceEur), so the rate
-  // always goes from EUR to the requested currency.
-  // 400: invalid ID or currency; 404: flight not found;
-  // 200: flight with price, or price null if Frankfurter is unavailable.
+  // ASSIGNMENT SOLUTION: add comment!!!
   // ---------------------------------------------------------------------------
-  async flightPrice(flightId: number, requestedCurrency?: string) {
+  async cheapestHotelWeather(cityId: number, requestedCurrency?: string) {
+    
+    const hotel = await this.cheapestHotelIn(cityId);
 
-    // FILL THESE 4 LINES
-    const currency = parseCurrency(requestedCurrency);
-    const flight = await this.flight(flightId);
-    const flightExchange = await available(this.external.rate("EUR", currency));
-    const price = convertPrice(flight.priceEur, rateOf(flightExchange)); 
+    requestedCurrency = parseCurrency(requestedCurrency);
+    const hotelCurrency = parseCurrency(hotel.city.currency);
+    const hotelExchange = await available(this.external.rate(hotelCurrency, requestedCurrency));
+    const price = convertPrice(hotel.pricePerNight, rateOf(hotelExchange));
+    
+    const weather = await available(
+      this.external.weather(
+        hotel.city.latitude,
+        hotel.city.longitude,
+      ),
+    );
 
-    return {
-      flight,
-      currency,
-      flightExchange,
-      price
-    };
+    return {hotel, hotelExchange, price, weather};
   }
+
+
 
   async clearDB(): Promise<void> {
     await this.hotels.deleteAll();
