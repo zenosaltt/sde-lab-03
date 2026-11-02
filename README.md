@@ -159,9 +159,9 @@ To be written by the students, using the examples as a model.
 
 ### Assignment
 
-`GET /flights/:id/price?currency=USD`. Flight (internal data) and Frankfurter exchange rate: price converted from EUR (`currency` is required, like in the exercises). The route goes in the controller, the logic in `TravelService.flightPrice`. The instructions are in [ASSIGNMENT.md](ASSIGNMENT.md); the teacher solution is in [ASSIGNMENT_SOLUTION.md](ASSIGNMENT_SOLUTION.md).
+`GET /cities/:id/cheapest-hotel-weather?currency=USD`. Cheapest hotel of a city (internal data), its nightly price converted from the city currency through Frankfurter, and current city weather from Open-Meteo (`currency` is required). The route goes in the controller, the logic in `TravelService.cheapestHotelWeather`. External failures are handled independently: the hotel remains available, a missing rate makes `price` null, and missing weather is marked `unavailable`. The instructions are in [ASSIGNMENT.md](ASSIGNMENT.md); the teacher solution is in [ASSIGNMENT_SOLUTION.md](ASSIGNMENT_SOLUTION.md).
 
 ### Submission
 
-Submit through the form indicated by the teachers **a screenshot or the JSON** of the response of `GET /flights/:id/price?currency=USD`, plus two lines explaining an observed error case. Do not include secrets or `.env` files in the submission.
+Submit through the form indicated by the teachers **a screenshot or the JSON** of the response of `GET /cities/:id/cheapest-hotel-weather?currency=USD`, plus two lines explaining an observed error case. Do not include secrets or `.env` files in the submission.
 

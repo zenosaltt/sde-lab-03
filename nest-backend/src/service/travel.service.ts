@@ -300,28 +300,43 @@ export class TravelService {
   }
 
   // ---------------------------------------------------------------------------
-  // ASSIGNMENT SOLUTION: add comment!!!
+  // ASSIGNMENT: cheapest hotel + converted price + current weather.
+  // GET /cities/3/cheapest-hotel-weather?currency=USD (currency is required).
+  // The ID identifies a CITY, not a hotel. The cheapest hotel is chosen by its
+  // original price in the city currency, with the lowest hotel ID on a tie.
+  // No flight, booking dates or availability checks are involved.
+  // Composition: local hotel -> Frankfurter conversion -> Open-Meteo weather.
+  // 404 if the city has no hotel (including a non-existent city); 400 for an
+  // invalid currency after a hotel is found. ParseIntPipe rejects non-integer IDs.
+  // External failures still produce 200, with each failed result "unavailable".
   // ---------------------------------------------------------------------------
   async cheapestHotelWeather(cityId: number, requestedCurrency?: string) {
-    
+    // 1. Load the cheapest hotel with its city: the relation supplies both the
+    //    source currency and the coordinates, without another city query.
     const hotel = await this.cheapestHotelIn(cityId);
 
+    // 2. Normalize and validate the requested and source currency codes.
+    //    The rate starts from hotel.city.currency (not necessarily EUR).
     requestedCurrency = parseCurrency(requestedCurrency);
     const hotelCurrency = parseCurrency(hotel.city.currency);
-    const hotelExchange = await available(this.external.rate(hotelCurrency, requestedCurrency));
+    const hotelExchange = await available(
+      this.external.rate(hotelCurrency, requestedCurrency),
+    );
+    // Round to two decimals; a missing rate gives null. The original hotel
+    // price is preserved, so the client can still display it on failure.
     const price = convertPrice(hotel.pricePerNight, rateOf(hotelExchange));
-    
+
+    // 3. No date is passed: weather uses the current UTC hour at the hotel's
+    //    city coordinates. This call still runs if the exchange is unavailable;
+    //    a weather failure likewise does not discard the hotel or its price.
     const weather = await available(
-      this.external.weather(
-        hotel.city.latitude,
-        hotel.city.longitude,
-      ),
+      this.external.weather(hotel.city.latitude, hotel.city.longitude),
     );
 
-    return {hotel, hotelExchange, price, weather};
+    // 4. Keep internal data, exchange result, converted nightly price and
+    //    weather separate. The target currency is known from the request.
+    return { hotel, hotelExchange, price, weather };
   }
-
-
 
   async clearDB(): Promise<void> {
     await this.hotels.deleteAll();

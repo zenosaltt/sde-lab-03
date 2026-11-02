@@ -79,7 +79,8 @@ export class TravelController {
     return this.travel.cheapestTrip(id, currency);
   }
 
-   // GET /flights/1/weather -> flight + weather at arrival (example, see the service).
+  // GET /cities/3/cheapest-hotel-weather?currency=USD -> cheapest hotel,
+  // converted nightly price and current city weather (assignment, see the service).
   @Get("cities/:id/cheapest-hotel-weather")
   getCheapestHotelWeather(
     @Param("id", ParseIntPipe) id: number,

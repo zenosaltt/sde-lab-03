@@ -144,20 +144,20 @@ function describeWeather(weather) {
 function renderObject(data, path) {
   const wrap = el('div', 'sections');
   const facts = el('dl', 'facts');
-  // cheapestTrip returns only the trip and converted prices. Read the target
-  // currency from the submitted request when it is not included in the response.
+  // cheapestTrip and cheapestHotelWeather omit the target currency. Read it
+  // from the submitted request, even if the user has since changed the form.
   const currency = data.currency
     ?? new URLSearchParams(path.split('?')[1]).get('currency')?.toUpperCase();
 
   // Converted prices belong in their cards, so they are not repeated below.
-  const hotelPriceInCard = data.hotel && currency && 'pricePerNight' in data;
-  // Exercise 2 uses flightPrice; the assignment uses price.
-  const flightPriceKey = 'flightPrice' in data ? 'flightPrice' : 'price';
-  const flightPriceInCard = data.flight && currency && flightPriceKey in data;
+  // Hotel price / cheapest trip use pricePerNight; the assignment uses price.
+  const hotelPriceKey = 'pricePerNight' in data ? 'pricePerNight' : 'price';
+  const hotelPriceInCard = data.hotel && currency && hotelPriceKey in data;
+  const flightPriceInCard = data.flight && currency && 'flightPrice' in data;
 
   for (const [key, value] of Object.entries(data)) {
-    if ((hotelPriceInCard && key === 'pricePerNight')
-      || (flightPriceInCard && key === flightPriceKey)) {
+    if ((hotelPriceInCard && key === hotelPriceKey)
+      || (flightPriceInCard && key === 'flightPrice')) {
       continue;
     }
     // The currency is already written next to every price: no box for it.
@@ -183,9 +183,9 @@ function renderObject(data, path) {
     } else if (itemCard(value)) {
       const section = el('div', 'section');
       const card = key === 'hotel' && hotelPriceInCard
-        ? hotelCard(value, { currency, price: data.pricePerNight })
+        ? hotelCard(value, { currency, price: data[hotelPriceKey] })
         : key === 'flight' && flightPriceInCard
-        ? flightCard(value, { currency, price: data[flightPriceKey] })
+        ? flightCard(value, { currency, price: data.flightPrice })
         : itemCard(value);
       section.append(el('h4', '', prettyLabel(key)), card);
       wrap.append(section);

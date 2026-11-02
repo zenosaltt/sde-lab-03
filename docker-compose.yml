@@ -13,7 +13,7 @@ services:
       PORT: 3000
       TSC_WATCHFILE: DynamicPriorityPolling
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     volumes:
       - ./nest-backend:/app
       - /app/node_modules
@@ -21,7 +21,7 @@ services:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
 
   mysql:
     image: mysql:8.4
@@ -32,8 +32,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    ports:
-      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -55,8 +53,15 @@ services:
     image: redis:7-alpine
     container_name: travel-lab-redis
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 volumes:
   mysql_data:

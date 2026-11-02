@@ -1,39 +1,57 @@
-# Solution: `GET /flights/:id/price`
+# Solution: `GET /cities/:id/cheapest-hotel-weather`
 
 Do not distribute.
 
 Service (`travel.service.ts`): the logic.
 
 ```ts
-async flightPrice(id: number, requestedCurrency?: string) {
+async cheapestHotelWeather(cityId: number, requestedCurrency?: string) {
+  const hotel = await this.cheapestHotelIn(cityId);
 
-  const currency = parseCurrency(requestedCurrency);
-  const flight = await this.flight(id);
-  const exchange = await available(this.external.rate("EUR", currency));
-  const price + convertPrice(flight.priceEur, rateOf(exchange));
+  requestedCurrency = parseCurrency(requestedCurrency);
+  const hotelCurrency = parseCurrency(hotel.city.currency);
+  const hotelExchange = await available(
+    this.external.rate(hotelCurrency, requestedCurrency),
+  );
+  const price = convertPrice(hotel.pricePerNight, rateOf(hotelExchange));
 
-  return {
-    flight,
-    currency,
-    exchange,
-    price
-  };
+  const weather = await available(
+    this.external.weather(hotel.city.latitude, hotel.city.longitude),
+  );
+
+  return { hotel, hotelExchange, price, weather };
+}
+```
+
+Controller (`travel.controller.ts`): delegate to the service.
+
+```ts
+@Get("cities/:id/cheapest-hotel-weather")
+getCheapestHotelWeather(
+  @Param("id", ParseIntPipe) id: number,
+  @Query("currency") currency?: string,
+) {
+  return this.travel.cheapestHotelWeather(id, currency);
 }
 ```
 
 ## Notes
 
-- `ExternalService.rate(from, to)` returns a number directly. The source currency is always `"EUR"` (flight prices are in EUR); the target is the requested currency.
-- `currency` is required, like in the hotel and cheapest-trip endpoints: `parseCurrency` answers `400` when it is missing or not three letters. (It is not defaulted to EUR.)
-- The currency is validated before the database is queried, as in `hotelPrice`. If both the ID and the currency are invalid the answer is `400`; if the ID does not exist but the currency is valid, `404`. Swapping the two lines is also acceptable.
-- `this.flight(id)` already rejects IDs below 1 with `400` and unknown IDs with `404`; `ParseIntPipe` rejects non-numeric IDs with `400`.
-- `rate("EUR", "EUR")` still calls Frankfurter (the implementation does not short-circuit), so an upstream failure makes `exchange` unavailable even for EUR. An unsupported but well-formed code (`ZZZ`) gives `200` with `unavailable`, not an error.
-- `rateOf(exchange)` is `exchange.data` when the status is `ok`, otherwise `null`; `convertPrice` returns `null` for a `null` rate and rounds to 2 decimals otherwise.
+- `cheapestHotelIn` loads the hotel with its city, sorts by original nightly price then hotel ID, and throws `404` when no hotel exists for that city. There is no separate city lookup. The cheapest hotel is selected before currency conversion.
+- The hotel lookup precedes currency validation in this solution. If no hotel is found, the answer is `404` even when the currency is invalid. `ParseIntPipe` rejects non-integer IDs before entering the service; numeric IDs with no matching hotel also produce `404`.
+- `parseCurrency` requires three letters and normalizes to uppercase. The source currency is `hotel.city.currency`, not always EUR. `ExternalService.rate` returns a number directly.
+- `available` wraps each external call separately. A failed exchange makes `price` null but does not prevent the weather call. A failed weather call preserves the hotel and exchange result. Even when both fail, the response is `200` with the hotel.
+- `convertPrice` rounds to two decimals; `rateOf` supplies null for an unavailable exchange. The original `hotel.pricePerNight` is never overwritten.
+- Omitting the date in `weather` uses the current UTC hour at the city's coordinates, with the existing optional Redis cache. No flight or arrival time is involved.
+- The frontend reads the target currency from the submitted request and reuses the hotel, exchange and weather cards. It displays the original hotel price with an unavailable conversion message if `price` is null.
 
 ## Common mistakes
 
-- Forgetting `available(...)`: a Frankfurter failure becomes a `500` instead of `200` with `unavailable`.
-- Reading `exchange.data.rate` instead of `exchange.data` (the service already returns the number).
-- Computing the price without `convertPrice` (no rounding, and a crash when the rate is missing).
-- Putting the logic in the controller instead of the service.
-- Using the wrong direction of the rate (`currency` -> `EUR`) or the hotel's city currency instead of `"EUR"`.
+- Treating the URL ID as a hotel ID rather than a city ID.
+- Using EUR as the source currency for every hotel or reversing the rate direction.
+- Reading `hotelExchange.data.rate` instead of `hotelExchange.data`.
+- Forgetting `available` around either external call, so a provider failure prevents the composed response.
+- Skipping the weather call when the exchange fails.
+- Passing a flight arrival date to `weather`, instead of requesting current weather.
+- Returning a different price key: this contract uses `price`, not `pricePerNight`.
+- Putting business logic in the controller rather than in the service.
