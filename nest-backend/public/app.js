@@ -160,8 +160,8 @@ function renderObject(data) {
     } else if (key.toLowerCase().endsWith('exchange')) {
       // Where the rate starts from: the hotel currency, EUR for flights.
       const from = key === 'flightExchange' ? 'EUR'
-        : key === 'hotelExchange' ? data.city?.currency
-        : data.originalCurrency ?? 'EUR';
+        : key === 'hotelExchange' ? data.city?.currency ?? data.hotel?.city?.currency
+        : data.originalCurrency ?? data.hotel?.city?.currency ?? 'EUR';
       wrap.append(externalBlock(prettyLabel(key), value, (rate) => '1 ' + from + ' = ' + rate + ' ' + (data.currency ?? '')));
     } else if (itemCard(value)) {
       const section = el('div', 'section');
@@ -177,7 +177,7 @@ function renderObject(data) {
   return wrap;
 }
 
-function render(data) {
+function render(data, path) {
   resultEl.replaceChildren();
 
   // A list: cities, flights or hotels.
@@ -204,7 +204,11 @@ function render(data) {
 
   // The rate endpoint answers { status, data }: data is the number.
   if (data.status && 'data' in data || data.status === 'unavailable') {
-    resultEl.append(externalBlock('Exchange rate', data, (rate) => '1 EUR = ' + rate + ' ' + currencyInput.value.toUpperCase()));
+    // Read both codes from the submitted request, even if the form has changed
+    // while waiting for the response. The backend supports any source currency.
+    const [, , from, to] = path.split('/');
+    resultEl.append(externalBlock('Exchange rate', data, (rate) =>
+      '1 ' + decodeURIComponent(from).toUpperCase() + ' = ' + rate + ' ' + decodeURIComponent(to).toUpperCase()));
     return;
   }
 
@@ -250,7 +254,7 @@ form.addEventListener('submit', async (event) => {
     } else if (!response.ok) {
       showMessage(Array.isArray(data.message) ? data.message.join(', ') : (data.message ?? text), true);
     } else {
-      render(data);
+      render(data, path);
     }
   } catch (error) {
     statusEl.textContent = 'No answer from the backend';
