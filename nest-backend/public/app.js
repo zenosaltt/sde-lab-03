@@ -2,25 +2,31 @@ const form = document.getElementById('form');
 const endpoint = document.getElementById('endpoint');
 const idInput = document.getElementById('id');
 const currencyInput = document.getElementById('currency');
+const fromInput = document.getElementById('from');
+const toInput = document.getElementById('to');
 const requestEl = document.getElementById('request');
 const statusEl = document.getElementById('status');
 const resultEl = document.getElementById('result');
 const rawEl = document.getElementById('raw');
 
-// Show an input only if the selected endpoint uses it ({id} or {currency} in its path).
+// Show an input only if the selected endpoint uses it ({id}, {currency}, {from} or {to} in its path).
 function updateFields() {
   document.getElementById('id-field').hidden = !endpoint.value.includes('{id}');
   document.getElementById('currency-field').hidden = !endpoint.value.includes('{currency}');
+  document.getElementById('from-field').hidden = !endpoint.value.includes('{from}');
+  document.getElementById('to-field').hidden = !endpoint.value.includes('{to}');
 }
 
 endpoint.addEventListener('change', updateFields);
 updateFields();
 
-// Replace {id} and {currency} in the chosen path with the values typed by the user.
+// Replace {id}, {currency}, {from} and {to} in the chosen path with the values typed by the user.
 function buildPath() {
   return endpoint.value
     .replace('{id}', encodeURIComponent(idInput.value))
-    .replace('{currency}', encodeURIComponent(currencyInput.value));
+    .replace('{currency}', encodeURIComponent(currencyInput.value))
+    .replace('{from}', encodeURIComponent(fromInput.value))
+    .replace('{to}', encodeURIComponent(toInput.value));
 }
 
 // ---- Rendering --------------------------------------------------------------

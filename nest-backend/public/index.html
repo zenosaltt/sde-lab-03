@@ -32,7 +32,7 @@
           <option value="/hotels/{id}">GET /hotels/:id</option>
         </optgroup>
         <optgroup label="Examples">
-          <option value="/rate/EUR/{currency}">Example 1: GET /rate/EUR/:currency</option>
+          <option value="/rate/{from}/{to}">Example 1: GET /rate/:from/:to</option>
           <option value="/flights/{id}/weather" data-todo>Example 2: GET /flights/:id/weather</option>
         </optgroup>
         <optgroup label="Exercises">
@@ -47,6 +47,14 @@
 
     <label id="id-field">ID
       <input id="id" type="text" value="1">
+    </label>
+
+    <label id="from-field">From
+      <input id="from" type="text" value="EUR" maxlength="3">
+    </label>
+
+    <label id="to-field">To
+      <input id="to" type="text" value="USD" maxlength="3">
     </label>
 
     <label id="currency-field">Currency

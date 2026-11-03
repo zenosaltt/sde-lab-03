@@ -50,8 +50,9 @@ export class TravelController {
   }
 
   // GET /rate/EUR/USD -> exchange rate between two currencies (example 1, see the service).
-  @Get("rate/:from/:to")
-  getRate(@Param("from") from: string, @Param("to") to: string) {
+  // GET /rate/USD     -> the source is optional and defaults to EUR (EUR -> USD).
+  @Get(["rate/:to", "rate/:from/:to"])
+  getRate(@Param("to") to: string, @Param("from") from: string = "EUR") {
     return this.travel.rate(from, to);
   }
 

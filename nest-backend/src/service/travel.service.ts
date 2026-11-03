@@ -180,8 +180,9 @@ export class TravelService {
 
   // External exchange rate
 
-  // GET /rate/EUR/USD -> exchange rate between two currencies, taken directly
-  // from Frankfurter. No database is involved.
+  // GET /rate/GBP/USD -> exchange rate between two currencies, taken directly
+  // from Frankfurter. GET /rate/USD means EUR -> USD (EUR is the default
+  // source, set in the controller). No database is involved.
   async rate(from: string, to: string) {
     // Validate both codes (three letters, upper case); invalid -> 400.
     const source = parseCurrency(from);
