@@ -18,7 +18,7 @@ export type Weather = { temperature_2m?: number; weather_code?: number; time?: s
 // - the server answers with an error status (404, 500, ...).
 // The callers (see "available" in the service) catch the error and turn it
 // into { status: 'unavailable' }.
-async function json(url: URL): Promise<unknown> {
+async function getJsonFromUrl(url: URL): Promise<unknown> {
   // fetch() performs the HTTP GET; "signal" cancels it after the timeout.
   const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   // response.ok is true only for status 200-299.
@@ -86,7 +86,7 @@ export class ExternalService implements OnModuleDestroy {
       if (cached) return JSON.parse(cached) as Weather;
     } catch {}
 
-    // 2. Reuse json(url): GET, 3-second timeout and HTTP status check.
+    // 2. Reuse getJsonFromUrl(url): GET, 3-second timeout and HTTP status check.
     const url = new URL('https://api.open-meteo.com/v1/forecast');
     url.searchParams.set('latitude', String(latitude));
     url.searchParams.set('longitude', String(longitude));
@@ -102,7 +102,7 @@ export class ExternalService implements OnModuleDestroy {
     url.searchParams.set('start_date', day);
     url.searchParams.set('end_date', day);
     
-    const data = await json(url) as {
+    const data = await getJsonFromUrl(url) as {
       hourly?: { time?: unknown; temperature_2m?: unknown; weather_code?: unknown };
     } | null;
     const hourly = data?.hourly;
@@ -143,12 +143,12 @@ export class ExternalService implements OnModuleDestroy {
     //    No API key is needed.
     const url = new URL(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
 
-    // 2. json(url) does the GET with fetch, gives up after 3 seconds, throws if
+    // 2. getJsonFromUrl(url) does the GET with fetch, gives up after 3 seconds, throws if
     //    the status is not 2xx and parses the body. await lets Node.js serve
     //    other requests while the network answers.
     //    The result is typed as { rate?: number } only to describe what we
     //    expect: the assertion does not check the data received at runtime.
-    const data = (await json(url)) as { rate?: number };
+    const data = (await getJsonFromUrl(url)) as { rate?: number };
 
     // 3. Runtime check of the one field we use: it must be a finite number
     //    (typeof alone would accept NaN and Infinity).

@@ -4,6 +4,8 @@ Implement `GET /cities/:id/cheapest-hotel-weather?currency=USD`. Given a city ID
 
 The logic goes in `TravelService` (`nest-backend/src/service/travel.service.ts`, method `cheapestHotelWeather`); the route goes in `TravelController` (`nest-backend/src/controller/travel.controller.ts`) and only calls the service. Reuse `cheapestHotelIn`, `parseCurrency`, `available`, `rateOf`, `convertPrice` and `ExternalService`.
 
+In `travel.service.ts`, replace each `TODO` placeholder (imported from `src/todo.ts`) with the right expression; the code compiles before and after.
+
 ## Response
 
 Example for a hotel whose city uses GBP (exchange rate and weather are illustrative):
@@ -12,7 +14,7 @@ Example for a hotel whose city uses GBP (exchange rate and weather are illustrat
 {
   "hotel": {
     "id": 7,
-    "name": "Demo Hotel",
+    "name": "Hotel Colosseo",
     "pricePerNight": 80,
     "city": {
       "id": 3,

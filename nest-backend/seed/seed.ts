@@ -12,11 +12,7 @@ async function seed() {
   try {
     const { added, cityIds } = await runSeed(app.get(TravelService));
     console.log(`Seed completato. Aggiunti: ${added.cities} città, ${added.flights} voli, ${added.hotels} hotel.`);
-    console.table([...cityIds].map(([city, id]) => ({ city, id })));
-    const baseUrl = `http://localhost:${process.env.PORT ?? 3000}`;
-    for (const name of ['Parigi', 'Madrid', 'Berlino']) {
-      console.log(`${name}: ${baseUrl}/cities/${cityIds.get(name)}/travel-options?currency=USD`);
-    }
+    
   } finally {
     await app.close();
   }

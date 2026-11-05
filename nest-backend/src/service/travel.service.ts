@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  NotImplementedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -9,13 +10,15 @@ import { City } from "../model/city.entity.ts";
 import { Flight } from "../model/flight.entity.ts";
 import { Hotel } from "../model/hotel.entity.ts";
 import { ExternalService } from "./external.service.ts";
-import { Weather } from "./external.service.ts";
 
 // Result of a call that may fail: either { status: 'ok', data: ... } or
 // { status: 'unavailable' }. The "|" means "one or the other"; <T> is the type
 // of the data (e.g. the weather object or the exchange rate number).
 type Available<T> = { status: "ok"; data: T } | { status: "unavailable" };
-
+// Placeholder for the lab blanks: replace each TODO with the right expression.
+// Typed `any` so it compiles in any slot; at runtime it is `undefined`, so
+// external calls fail -> "unavailable", and an unfinished exercise answers 501.
+const TODO: any = undefined;
 // Waits for a promise (e.g. an external API call) and NEVER throws.
 // - success -> { status: 'ok', data: <result> }
 // - failure (timeout, HTTP error, invalid response) -> { status: 'unavailable' }
@@ -54,8 +57,20 @@ function convertPrice(price: number, rate: number | null): number | null {
 
 // The rate of an Available result, or null when the exchange service failed.
 function rateOf(exchange: Available<number>): number | null {
+  filled(exchange, "the exchange result");
   if (exchange.status === "ok") return exchange.data;
   return null;
+}
+
+// Throws 501 if a lab blank has not been filled in yet (it is still TODO),
+// so an unfinished exercise fails visibly instead of crashing or returning nulls.
+function filled<T>(value: T | undefined, name: string): T {
+  if (value === undefined) {
+    throw new NotImplementedException(
+      `Exercise incomplete: ${name} is still TODO`,
+    );
+  }
+  return value;
 }
 
 // Relations loaded with every flight: its departure and arrival city.
@@ -103,12 +118,9 @@ export class TravelService {
 
   // Shared by city/flight/hotel: IDs start from 1 (otherwise 400), and a missing
   // row throws NotFoundException (404).
-  private async load<T>(
-    id: number,
-    name: string,
-    query: () => Promise<T | null>,
-  ): Promise<T> {
-    if (id < 1) throw new BadRequestException("ID must be positive");
+  private async load<T>(id: number, name: string, query: () => Promise<T | null>): Promise<T> {
+    filled(id, "the ID");
+    if (!(id >= 1)) throw new BadRequestException("ID must be positive");
     const row = await query();
     if (!row) throw new NotFoundException(`${name} not found`);
     return row;
@@ -132,22 +144,16 @@ export class TravelService {
   }
 
   // Used by the seed only: the data is typed and trusted, so there is no validation.
-  createCity(data: {
-    name: string;
-    latitude: number;
-    longitude: number;
-    currency: string;
-  }) {
+  createCity(data: { name: string; latitude: number; longitude: number; currency: string }) {
     return this.cities.save(this.cities.create(data));
   }
 
-  createFlight(data: {
-    departureCity: City;
-    arrivalCity: City;
-    departureTime: Date;
-    arrivalTime: Date;
-    airline: string;
-    priceEur: number;
+  createFlight(data: { departureCity: City; 
+    arrivalCity: City; 
+    departureTime: Date; 
+    arrivalTime: Date; 
+    airline: string; 
+    priceEur: number 
   }) {
     return this.flights.save(this.flights.create(data));
   }
@@ -234,25 +240,22 @@ export class TravelService {
   async hotelPrice(hotelId: number, requestedCurrency?: string) {
     // Validate the input before contacting the database or an external provider.
     const currency = parseCurrency(requestedCurrency);
-  
-    // const hotel = await this.hotel(hotelId); // LINE TO FILL
-    const hotel = { "id": 99999, "name": "Hotel Povo 1", "pricePerNight": 99999, "city": { "currency": "EUR" } };
+    
+    const hotel = TODO; // HINT: await ... (Take a look at the method in line 140) 
 
     // The rate goes from the currency of the hotel (that of its city) to the
     // requested currency. available turns a Frankfurter failure into
     // { status: "unavailable" } instead of an error.
-    //const exchange = await available(
-      //this.external.rate(hotel.city.currency, currency), // LINE TO COMPLETE
-    //);
-    const exchange: Available<number> = { "status": "unavailable" };
+    const exchange = TODO // HINT:  await + ... (Look at lines 192-200)
+    
 
     // The original price is not overwritten, neither in the entity nor in the
     // database. If the rate fails: HTTP 200, pricePerNight is null and the
     // original amount is still returned.
     return {
-      hotel,
+      hotel: filled(hotel, "hotel"),
       currency,
-      exchange,
+      exchange: filled(exchange, "exchange"),
       pricePerNight: convertPrice(hotel.pricePerNight, rateOf(exchange)),
     };
   }
@@ -283,23 +286,14 @@ export class TravelService {
     const [flight, hotel, flightExchange, hotelExchange] = await Promise.all([
       this.cheapestFlightTo(cityId),
       this.cheapestHotelIn(cityId),
-      //available(this.external.rate("EUR", currency)),
-      available(this.external.rate("xyz", "zyx")),
-      //available(this.external.rate(city.currency, currency)),
-      available(this.external.rate("xyz", "zyx"))
+      available(this.external.rate(TODO, TODO)), // TODO: flight rate
+      available(this.external.rate(TODO, TODO)), // TODO: hotel rate
     ]);
 
     const flightPrice = convertPrice(flight.priceEur, rateOf(flightExchange));
 
     // HINT: look at flightPrice
-    //const pricePerNight = convertPrice(
-      //hotel.pricePerNight,
-      //rateOf(hotelExchange),
-    //);
-    const pricePerNight = convertPrice(
-      999,
-      null,
-    )
+    const pricePerNight = TODO 
 
     // The original prices stay inside flight (EUR) and hotel (currency of the
     // city); the converted amounts are null when a rate is unavailable.
@@ -309,7 +303,7 @@ export class TravelService {
       flightExchange,
       hotelExchange,
       flightPrice,
-      pricePerNight,
+      pricePerNight: filled(pricePerNight, "pricePerNight"),
     };
   }
 
@@ -334,10 +328,7 @@ export class TravelService {
     requestedCurrency = parseCurrency(requestedCurrency);
     const hotelCurrency = parseCurrency(hotel.city.currency);
 
-    const hotelExchange: Available<number> = { status: "unavailable"};
-    //const hotelExchange = await available(
-      //this.external.rate(hotelCurrency, requestedCurrency),
-    //);
+    const hotelExchange = TODO; // HINT: look at exercise 2;
 
     // Round to two decimals; a missing rate gives null. The original hotel
     // price is preserved, so the client can still display it on failure.
@@ -346,14 +337,11 @@ export class TravelService {
     // 3. No date is passed: weather uses the current UTC hour at the hotel's
     //    city coordinates. This call still runs if the exchange is unavailable;
     //    a weather failure likewise does not discard the hotel or its price.
-    const weather: Available<Weather> = { status: "unavailable" };
-    //const weather = await available(
-      //this.external.weather(hotel.city.latitude, hotel.city.longitude),
-    //);
+    const weather = TODO; // HINT: look at example 2;
 
     // 4. Keep internal data, exchange result, converted nightly price and
     //    weather separate. The target currency is known from the request.
-    return { hotel, hotelExchange, price, weather };
+    return { hotel, hotelExchange: filled(hotelExchange, "hotelExchange"), price, weather: filled(weather, "weather") };
   }
 
   async clearDB(): Promise<void> {

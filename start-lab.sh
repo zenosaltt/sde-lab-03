@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Start the lab in Docker, seed the database, and follow the backend logs.
 # Usage: ./start-lab.sh
+# If scripts are blocked: chmod +x .\start-lab.ps1
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

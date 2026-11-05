@@ -1,4 +1,4 @@
-// Real coordinates; airlines, hotels, prices and times are demo data.
+// Real coordinates; airlines, hotels, prices and times are sample data.
 // Flight prices are in EUR (priceEur); hotel prices are in the currency of their city.
 export const cities = [
   { name: 'Rome', latitude: 41.9028, longitude: 12.4964, currency: 'EUR' },
@@ -35,30 +35,30 @@ const templates: FlightTemplate[] = [
   // Europe <--> world
   { departureCity: 'Rome', arrivalCity: 'London', airline: 'Tutorial Jet', priceEur: 155, durationMinutes: 160 },
   { departureCity: 'London', arrivalCity: 'Rome', airline: 'Tutorial Jet', priceEur: 175.25, durationMinutes: 160 },
-  { departureCity: 'Rome', arrivalCity: 'New York', airline: 'Demo Air', priceEur: 540, durationMinutes: 510 },
+  { departureCity: 'Rome', arrivalCity: 'New York', airline: 'Sky Air', priceEur: 540, durationMinutes: 510 },
   { departureCity: 'New York', arrivalCity: 'Rome', airline: 'Tutorial Jet', priceEur: 520, durationMinutes: 720 },
   { departureCity: 'London', arrivalCity: 'New York', airline: 'Tutorial Jet', priceEur: 480.5, durationMinutes: 480 },
   { departureCity: 'Rome', arrivalCity: 'Tokyo', airline: 'Lab Wings', priceEur: 880, durationMinutes: 780 },
-  { departureCity: 'London', arrivalCity: 'Beijing', airline: 'Demo Air', priceEur: 690.9, durationMinutes: 600 },
+  { departureCity: 'London', arrivalCity: 'Beijing', airline: 'Sky Air', priceEur: 690.9, durationMinutes: 600 },
   { departureCity: 'Beijing', arrivalCity: 'Rome', airline: 'Lab Wings', priceEur: 780, durationMinutes: 640 },
-  { departureCity: 'Rome', arrivalCity: 'Rio De Janeiro', airline: 'Demo Air', priceEur: 720, durationMinutes: 710 },
+  { departureCity: 'Rome', arrivalCity: 'Rio De Janeiro', airline: 'Sky Air', priceEur: 720, durationMinutes: 710 },
   { departureCity: 'Rio De Janeiro', arrivalCity: 'London', airline: 'Tutorial Jet', priceEur: 760.5, durationMinutes: 700 },
   { departureCity: 'Toronto', arrivalCity: 'London', airline: 'Lab Wings', priceEur: 520, durationMinutes: 420 },
 
   // Nord America
-  { departureCity: 'New York', arrivalCity: 'Toronto', airline: 'Demo Air', priceEur: 140, durationMinutes: 95 },
+  { departureCity: 'New York', arrivalCity: 'Toronto', airline: 'Sky Air', priceEur: 140, durationMinutes: 95 },
   { departureCity: 'Toronto', arrivalCity: 'New York', airline: 'Lab Wings', priceEur: 135.75, durationMinutes: 90 },
   { departureCity: 'New York', arrivalCity: 'Mexico City', airline: 'Tutorial Jet', priceEur: 260, durationMinutes: 270 },
-  { departureCity: 'Mexico City', arrivalCity: 'Toronto', airline: 'Demo Air', priceEur: 310, durationMinutes: 300 },
+  { departureCity: 'Mexico City', arrivalCity: 'Toronto', airline: 'Sky Air', priceEur: 310, durationMinutes: 300 },
 
   // Asia
   { departureCity: 'Tokyo', arrivalCity: 'Beijing', airline: 'Lab Wings', priceEur: 320, durationMinutes: 240 },
-  { departureCity: 'Beijing', arrivalCity: 'Tokyo', airline: 'Demo Air', priceEur: 295.5, durationMinutes: 225 },
+  { departureCity: 'Beijing', arrivalCity: 'Tokyo', airline: 'Sky Air', priceEur: 295.5, durationMinutes: 225 },
   { departureCity: 'Tokyo', arrivalCity: 'New York', airline: 'Tutorial Jet', priceEur: 950, durationMinutes: 800 },
 
   // Sud America
   { departureCity: 'Mexico City', arrivalCity: 'Buenos Aires', airline: 'Lab Wings', priceEur: 640, durationMinutes: 530 },
-  { departureCity: 'Buenos Aires', arrivalCity: 'Rio De Janeiro', airline: 'Demo Air', priceEur: 210, durationMinutes: 175 },
+  { departureCity: 'Buenos Aires', arrivalCity: 'Rio De Janeiro', airline: 'Sky Air', priceEur: 210, durationMinutes: 175 },
   { departureCity: 'Rio De Janeiro', arrivalCity: 'Buenos Aires', airline: 'Tutorial Jet', priceEur: 205.9, durationMinutes: 195 },
 ];
 
@@ -86,24 +86,24 @@ export function getFlights(): SeedFlight[] {
 }
 
 export const hotels: SeedHotel[] = [
-  { city: 'Rome', name: 'Demo Hotel Colosseo', pricePerNight: 145 },
-  { city: 'Rome', name: 'Demo Hotel Trastevere', pricePerNight: 95.5 },
-  { city: 'Rome', name: 'Demo Hotel Tevere', pricePerNight: 65 },
-  { city: 'London', name: 'Demo Hotel Tamigi', pricePerNight: 135 },
-  { city: 'London', name: 'Demo Hotel Camden', pricePerNight: 85 },
-  { city: 'London', name: 'Demo Hotel Westminster', pricePerNight: 245.5 },
-  { city: 'New York', name: 'Demo Hotel Manhattan', pricePerNight: 280 },
-  { city: 'New York', name: 'Demo Hotel Brooklyn', pricePerNight: 165.5 },
-  { city: 'Tokyo', name: 'Demo Hotel Shinjuku', pricePerNight: 15000 },
-  { city: 'Tokyo', name: 'Demo Hotel Asakusa', pricePerNight: 9500.75 },
-  { city: 'Beijing', name: 'Demo Hotel Hutong', pricePerNight: 70 },
-  { city: 'Beijing', name: 'Demo Hotel Citta Proibita', pricePerNight: 135.5 },
-  { city: 'Toronto', name: 'Demo Hotel Lakeshore', pricePerNight: 120 },
-  { city: 'Toronto', name: 'Demo Hotel Distillery', pricePerNight: 90.25 },
-  { city: 'Mexico City', name: 'Demo Hotel Zocalo', pricePerNight: 60 },
-  { city: 'Mexico City', name: 'Demo Hotel Polanco', pricePerNight: 130.75 },
-  { city: 'Buenos Aires', name: 'Demo Hotel Palermo', pricePerNight: 75 },
-  { city: 'Buenos Aires', name: 'Demo Hotel Recoleta', pricePerNight: 110.5 },
-  { city: 'Rio De Janeiro', name: 'Demo Hotel Copacabana', pricePerNight: 105 },
-  { city: 'Rio De Janeiro', name: 'Demo Hotel Ipanema', pricePerNight: 140.25 },
+  { city: 'Rome', name: 'Colosseo', pricePerNight: 145 },
+  { city: 'Rome', name: 'Trastevere', pricePerNight: 95.5 },
+  { city: 'Rome', name: 'Tevere', pricePerNight: 65 },
+  { city: 'London', name: 'Tamigi', pricePerNight: 135 },
+  { city: 'London', name: 'Camden', pricePerNight: 85 },
+  { city: 'London', name: 'Westminster', pricePerNight: 245.5 },
+  { city: 'New York', name: 'Manhattan', pricePerNight: 280 },
+  { city: 'New York', name: 'Brooklyn', pricePerNight: 165.5 },
+  { city: 'Tokyo', name: 'Shinjuku', pricePerNight: 15000 },
+  { city: 'Tokyo', name: 'Asakusa', pricePerNight: 9500.75 },
+  { city: 'Beijing', name: 'Hutong', pricePerNight: 70 },
+  { city: 'Beijing', name: 'Citta Proibita', pricePerNight: 135.5 },
+  { city: 'Toronto', name: 'Lakeshore', pricePerNight: 120 },
+  { city: 'Toronto', name: 'Distillery', pricePerNight: 90.25 },
+  { city: 'Mexico City', name: 'Zocalo', pricePerNight: 60 },
+  { city: 'Mexico City', name: 'Polanco', pricePerNight: 130.75 },
+  { city: 'Buenos Aires', name: 'Palermo', pricePerNight: 75 },
+  { city: 'Buenos Aires', name: 'Recoleta', pricePerNight: 110.5 },
+  { city: 'Rio De Janeiro', name: 'Copacabana', pricePerNight: 105 },
+  { city: 'Rio De Janeiro', name: 'Ipanema', pricePerNight: 140.25 },
 ];
