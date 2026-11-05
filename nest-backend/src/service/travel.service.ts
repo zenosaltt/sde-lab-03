@@ -199,13 +199,11 @@ export class TravelService {
     return available(this.external.rate(source, target));
   }
 
-  // ---------------------------------------------------------------------------
   // (EXAMPLE 2): flight + weather at arrival.
   // GET /flights/1/weather
   // Sequential composition: first the internal data, then the external request,
   // built with the coordinates of the destination and the arrival time.
   // 400: invalid ID; 404: flight not found; 200: flight with weather or "unavailable".
-  // ---------------------------------------------------------------------------
   async flightWeather(flightId: number) {
     // 1. The flight is loaded together with arrivalCity, so no second query is
     //    needed to get the coordinates of the destination.
@@ -230,13 +228,11 @@ export class TravelService {
     return { flight, weather };
   }
 
-  // ---------------------------------------------------------------------------
   // (EXERCISE 1): hotel + currency conversion.
   // GET /hotels/1/price?currency=USD (the currency is required: 400 if missing).
   // The price of a hotel in the database is in the currency of its city
   // (city.currency): London in GBP, Tokyo in JPY, ... The conversion starts there.
   // Same pattern as the first example: internal data -> external API -> combined answer.
-  // ---------------------------------------------------------------------------
   async hotelPrice(hotelId: number, requestedCurrency?: string) {
     // Validate the input before contacting the database or an external provider.
     const currency = parseCurrency(requestedCurrency);
@@ -260,7 +256,6 @@ export class TravelService {
     };
   }
 
-  // --------------------------------------------given a hotel, return its price per night in the requested currency-------------------------------
   // EXERCISE 2: business logic, cheapest flight + cheapest hotel.
   // GET /cities/3/cheapest-trip?currency=USD (the currency is required).
   // Contract of the lab: one inbound flight from any origin + ONE night in a
@@ -270,7 +265,6 @@ export class TravelService {
   // or bookings.
   // 400 if the currency is invalid; 404 if the city does not exist or one of
   // the two parts is missing.
-  // ---------------------------------------------------------------------------
   async cheapestTrip(cityId: number, requestedCurrency?: string) {
     
     const currency = parseCurrency(requestedCurrency);
@@ -306,7 +300,6 @@ export class TravelService {
     };
   }
 
-  // ---------------------------------------------------------------------------
   // ASSIGNMENT: cheapest hotel + converted price + current weather.
   // GET /cities/3/cheapest-hotel-weather?currency=USD (currency is required).
   // The ID identifies a CITY, not a hotel. The cheapest hotel is chosen by its
@@ -316,7 +309,6 @@ export class TravelService {
   // 404 if the city has no hotel (including a non-existent city); 400 for an
   // invalid currency after a hotel is found. ParseIntPipe rejects non-integer IDs.
   // External failures still produce 200, with each failed result "unavailable".
-  // ---------------------------------------------------------------------------
   async cheapestHotelWeather(cityId: number, requestedCurrency?: string) {
     // 1. Load the cheapest hotel with its city: the relation supplies both the
     //    source currency and the coordinates, without another city query.

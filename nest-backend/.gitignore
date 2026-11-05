@@ -45,6 +45,8 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Solution file
+ASSIGNMENT_SOLUTION.md
 # temp directory
 .temp
 .tmp
