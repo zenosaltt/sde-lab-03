@@ -256,7 +256,7 @@ export class TravelService {
       hotel: filled(hotel, "hotel"),
       currency,
       exchange: filled(exchange, "exchange"),
-      pricePerNight: convertPrice(hotel.pricePerNight, rateOf(exchange)),
+      convertedPricePerNight: convertPrice(hotel.pricePerNight, rateOf(exchange)),
     };
   }
 
@@ -290,10 +290,9 @@ export class TravelService {
       available(this.external.rate(TODO, TODO)), // TODO: hotel rate
     ]);
 
-    const flightPrice = convertPrice(flight.priceEur, rateOf(flightExchange));
-
+    const convertedFlightPrice = convertPrice(flight.priceEur, rateOf(flightExchange));
     // HINT: look at flightPrice
-    const pricePerNight = TODO 
+    const convertedHotelPrice = TODO 
 
     // The original prices stay inside flight (EUR) and hotel (currency of the
     // city); the converted amounts are null when a rate is unavailable.
@@ -302,8 +301,8 @@ export class TravelService {
       hotel,
       flightExchange,
       hotelExchange,
-      flightPrice,
-      pricePerNight: filled(pricePerNight, "pricePerNight"),
+      convertedFlightPrice,
+      convertedHotelPrice: filled(convertedHotelPrice, "convertedHotelPrice"),
     };
   }
 
@@ -332,7 +331,7 @@ export class TravelService {
 
     // Round to two decimals; a missing rate gives null. The original hotel
     // price is preserved, so the client can still display it on failure.
-    const price = convertPrice(hotel.pricePerNight, rateOf(hotelExchange));
+    const convertedPrice = convertPrice(hotel.pricePerNight, rateOf(hotelExchange));
 
     // 3. No date is passed: weather uses the current UTC hour at the hotel's
     //    city coordinates. This call still runs if the exchange is unavailable;
@@ -341,7 +340,12 @@ export class TravelService {
 
     // 4. Keep internal data, exchange result, converted nightly price and
     //    weather separate. The target currency is known from the request.
-    return { hotel, hotelExchange: filled(hotelExchange, "hotelExchange"), price, weather: filled(weather, "weather") };
+    return { 
+      hotel, 
+      hotelExchange: filled(hotelExchange, "hotelExchange"), 
+      convertedPrice, 
+      weather: filled(weather, "weather"), 
+    };
   }
 
   async clearDB(): Promise<void> {
